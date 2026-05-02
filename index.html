@@ -1,47 +1,365 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Your Band Name</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-      text-align: center;
-      padding: 40px;
-    }
-    h1 {
-      margin-bottom: 10px;
-    }
-    .song {
-      margin: 30px 0;
-    }
-    a {
-      color: #00ccff;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Band Name</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: white;
+  overflow-x: hidden;
+  background: black;
+  transition: background 2s ease-in-out;
+}
+
+.background-animate {
+  position: fixed;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: radial-gradient(circle at center, #4b0082, black 60%);
+  animation: moveBg 20s linear infinite;
+  z-index: -2;
+  opacity: 0.5;
+}
+
+@keyframes moveBg {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.overlay {
+  background: rgba(0,0,0,0.8);
+  min-height: 100vh;
+  padding: 30px 20px 120px 20px;
+}
+
+.logo {
+  text-align: center;
+  font-size: 36px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  color: #bb66ff;
+  text-shadow: 0 0 10px #bb66ff, 0 0 20px purple;
+  margin-bottom: 40px;
+}
+
+.playlist {
+  max-width: 800px;
+  margin: 0 auto;
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid purple;
+  background: rgba(0,0,0,0.6);
+}
+
+.song {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  border-bottom: 1px solid #222;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.song img {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+}
+
+.song:hover {
+  background: rgba(128,0,128,0.4);
+}
+
+.song.active {
+  background: rgba(187,102,255,0.5);
+  font-weight: bold;
+}
+
+.song-info {
+  flex: 1;
+}
+
+.download {
+  color: #bb66ff;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.sticky-player {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #111;
+  border-top: 2px solid purple;
+  padding: 10px 15px;
+}
+
+.now-playing {
+  font-weight: bold;
+  color: #bb66ff;
+  margin-bottom: 5px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+button {
+  background: purple;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+button.active {
+  background: #bb66ff;
+}
+
+.progress-container {
+  flex: 1;
+  height: 8px;
+  background: #333;
+  cursor: pointer;
+  position: relative;
+}
+
+.progress {
+  height: 100%;
+  width: 0%;
+  background: #bb66ff;
+}
+
+.time {
+  font-size: 12px;
+  width: 90px;
+  text-align: right;
+}
+
+.visualizer {
+  display: flex;
+  gap: 3px;
+  height: 20px;
+  margin-top: 5px;
+}
+
+.bar {
+  width: 4px;
+  background: #bb66ff;
+  animation: bounce 1s infinite ease-in-out;
+}
+
+@keyframes bounce {
+  0%,100% { height: 5px; }
+  50% { height: 20px; }
+}
+
+footer {
+  text-align: center;
+  margin-top: 40px;
+  color: #888;
+}
+</style>
 </head>
+
 <body>
 
-<h1>Your Band Name</h1>
-<p>Welcome to our official site.</p>
+<div class="background-animate"></div>
 
-<div class="song">
-  <h2>Song Title</h2>
+<div class="overlay">
 
-  <audio controls preload="none">
-    <source src="music/song1.mp3" type="audio/mpeg">
-    Your browser does not support the audio element.
-  </audio>
+  <div class="logo">
+    YOUR BAND LOGO
+  </div>
 
-  <p>
-    <a href="music/song1.mp3" download>
-      Download MP3
-    </a>
-  </p>
+  <div class="playlist" id="playlist"></div>
+
+  <footer>
+    © 2026 Your Band Name
+  </footer>
+
 </div>
+
+<div class="sticky-player">
+  <div class="now-playing" id="nowPlaying">Now Playing: —</div>
+
+  <div class="controls">
+    <button onclick="prevSong()">⏮</button>
+    <button onclick="togglePlay()" id="playBtn">▶</button>
+    <button onclick="nextSong()">⏭</button>
+    <button id="shuffleBtn">Shuffle</button>
+    <button id="repeatBtn">Repeat</button>
+
+    <div class="progress-container" onclick="seek(event)">
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <div class="time" id="timeDisplay">0:00 / 0:00</div>
+  </div>
+
+  <div class="visualizer" id="visualizer"></div>
+</div>
+
+<script>
+const songs = [
+  { title: "Song One", file: "music/song1.mp3", cover: "https://picsum.photos/50?1" },
+  { title: "Song Two", file: "music/song2.mp3", cover: "https://picsum.photos/50?2" },
+  { title: "Song Three", file: "music/song3.mp3", cover: "https://picsum.photos/50?3" }
+];
+
+const audio = new Audio();
+audio.volume = 0.9;
+
+const playlistDiv = document.getElementById("playlist");
+const progress = document.getElementById("progress");
+const timeDisplay = document.getElementById("timeDisplay");
+const nowPlaying = document.getElementById("nowPlaying");
+const playBtn = document.getElementById("playBtn");
+const shuffleBtn = document.getElementById("shuffleBtn");
+const repeatBtn = document.getElementById("repeatBtn");
+const visualizer = document.getElementById("visualizer");
+
+let currentIndex = 0;
+let shuffle = false;
+let repeat = false;
+
+/* Create Visualizer Bars */
+for (let i = 0; i < 20; i++) {
+  const bar = document.createElement("div");
+  bar.classList.add("bar");
+  bar.style.animationDelay = (i * 0.1) + "s";
+  visualizer.appendChild(bar);
+}
+
+function loadSong(index) {
+  audio.style.opacity = 0;
+  setTimeout(() => {
+    currentIndex = index;
+    audio.src = songs[index].file;
+    nowPlaying.textContent = "Now Playing: " + songs[index].title;
+    highlightSong();
+    audio.play();
+    playBtn.textContent = "⏸";
+    audio.style.opacity = 1;
+    scrollToActive();
+  }, 300);
+}
+
+function togglePlay() {
+  if (audio.paused) {
+    audio.play();
+    playBtn.textContent = "⏸";
+  } else {
+    audio.pause();
+    playBtn.textContent = "▶";
+  }
+}
+
+function prevSong() {
+  currentIndex = (currentIndex - 1 + songs.length) % songs.length;
+  loadSong(currentIndex);
+}
+
+function nextSong() {
+  if (shuffle) {
+    currentIndex = Math.floor(Math.random() * songs.length);
+  } else {
+    currentIndex = (currentIndex + 1) % songs.length;
+  }
+  loadSong(currentIndex);
+}
+
+audio.addEventListener("timeupdate", () => {
+  const percent = (audio.currentTime / audio.duration) * 100;
+  progress.style.width = percent + "%";
+
+  const current = formatTime(audio.currentTime);
+  const total = formatTime(audio.duration);
+  timeDisplay.textContent = current + " / " + total;
+});
+
+audio.addEventListener("ended", () => {
+  if (repeat) loadSong(currentIndex);
+  else nextSong();
+});
+
+function seek(e) {
+  const width = e.currentTarget.clientWidth;
+  const clickX = e.offsetX;
+  const duration = audio.duration;
+  audio.currentTime = (clickX / width) * duration;
+}
+
+function formatTime(seconds) {
+  if (!seconds) return "0:00";
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return minutes + ":" + (secs < 10 ? "0" : "") + secs;
+}
+
+shuffleBtn.onclick = () => {
+  shuffle = !shuffle;
+  shuffleBtn.classList.toggle("active", shuffle);
+};
+
+repeatBtn.onclick = () => {
+  repeat = !repeat;
+  repeatBtn.classList.toggle("active", repeat);
+};
+
+songs.forEach((song, index) => {
+  const songDiv = document.createElement("div");
+  songDiv.classList.add("song");
+  songDiv.innerHTML = `
+    <img src="${song.cover}">
+    <div class="song-info">${song.title}</div>
+    <a class="download" href="${song.file}" download>Download</a>
+  `;
+  songDiv.onclick = () => loadSong(index);
+  playlistDiv.appendChild(songDiv);
+});
+
+function highlightSong() {
+  document.querySelectorAll(".song").forEach((el, i) => {
+    el.classList.toggle("active", i === currentIndex);
+  });
+}
+
+function scrollToActive() {
+  const active = document.querySelector(".song.active");
+  active.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+/* Background Rotation */
+const backgrounds = [
+  "radial-gradient(circle at center, #4b0082, black 60%)",
+  "radial-gradient(circle at center, #2b0033, black 60%)",
+  "radial-gradient(circle at center, #000000, #4b0082 70%)"
+];
+
+let bgIndex = 0;
+
+function changeBackground() {
+  document.body.style.background = backgrounds[bgIndex];
+  bgIndex = (bgIndex + 1) % backgrounds.length;
+}
+
+changeBackground();
+setInterval(changeBackground, 30000);
+
+loadSong(0);
+</script>
 
 </body>
 </html>
