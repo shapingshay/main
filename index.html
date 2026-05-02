@@ -17,6 +17,7 @@ body {
   transition: background 2s ease-in-out;
 }
 
+/* Animated background */
 .background-animate {
   position: fixed;
   width: 200%;
@@ -24,7 +25,7 @@ body {
   top: -50%;
   left: -50%;
   background: radial-gradient(circle at center, #4b0082, black 60%);
-  animation: moveBg 20s linear infinite;
+  animation: moveBg 25s linear infinite;
   z-index: -2;
   opacity: 0.5;
 }
@@ -35,21 +36,23 @@ body {
 }
 
 .overlay {
-  background: rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.85);
   min-height: 100vh;
-  padding: 30px 20px 120px 20px;
+  padding: 30px 20px 140px 20px;
 }
 
+/* Logo */
 .logo {
   text-align: center;
-  font-size: 36px;
+  font-size: 42px;
   font-weight: bold;
-  letter-spacing: 4px;
+  letter-spacing: 5px;
   color: #bb66ff;
-  text-shadow: 0 0 10px #bb66ff, 0 0 20px purple;
+  text-shadow: 0 0 15px #bb66ff, 0 0 30px purple;
   margin-bottom: 40px;
 }
 
+/* Playlist */
 .playlist {
   max-width: 800px;
   margin: 0 auto;
@@ -70,9 +73,10 @@ body {
 }
 
 .song img {
-  width: 50px;
-  height: 50px;
+  width: 55px;
+  height: 55px;
   object-fit: cover;
+  border: 1px solid purple;
 }
 
 .song:hover {
@@ -94,75 +98,93 @@ body {
   font-size: 14px;
 }
 
+/* Sticky Player */
 .sticky-player {
   position: fixed;
   bottom: 0;
   width: 100%;
-  background: #111;
-  border-top: 2px solid purple;
-  padding: 10px 15px;
+  background: #0a0a0a;
+  border-top: 3px solid purple;
+  padding: 15px;
+  box-shadow: 0 -5px 20px rgba(187,102,255,0.3);
 }
 
 .now-playing {
   font-weight: bold;
   color: #bb66ff;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
+  font-size: 18px;
 }
 
+/* BIGGER CONTROLS */
 .controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
-button {
-  background: purple;
-  border: none;
-  color: white;
-  padding: 8px 12px;
+.control-btn {
+  width: 55px;
+  height: 55px;
+  background: linear-gradient(145deg, #2b0033, #000);
+  border: 2px solid purple;
+  color: #bb66ff;
+  font-size: 20px;
   cursor: pointer;
+  box-shadow: 0 0 10px rgba(187,102,255,0.6);
+  transition: all 0.2s ease;
 }
 
-button.active {
+.control-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px #bb66ff;
+}
+
+.control-btn.active {
   background: #bb66ff;
+  color: black;
 }
 
+/* Progress Bar */
 .progress-container {
   flex: 1;
-  height: 8px;
-  background: #333;
+  height: 12px;
+  background: #222;
   cursor: pointer;
   position: relative;
+  border: 1px solid purple;
 }
 
 .progress {
   height: 100%;
   width: 0%;
-  background: #bb66ff;
+  background: linear-gradient(90deg, purple, #bb66ff);
 }
 
 .time {
-  font-size: 12px;
-  width: 90px;
+  font-size: 14px;
+  width: 100px;
   text-align: right;
 }
 
+/* Visualizer */
 .visualizer {
   display: flex;
-  gap: 3px;
-  height: 20px;
-  margin-top: 5px;
+  gap: 4px;
+  height: 25px;
+  margin-top: 8px;
 }
 
 .bar {
-  width: 4px;
+  width: 5px;
   background: #bb66ff;
   animation: bounce 1s infinite ease-in-out;
 }
 
 @keyframes bounce {
   0%,100% { height: 5px; }
-  50% { height: 20px; }
+  50% { height: 25px; }
 }
 
 footer {
@@ -195,11 +217,11 @@ footer {
   <div class="now-playing" id="nowPlaying">Now Playing: —</div>
 
   <div class="controls">
-    <button onclick="prevSong()">⏮</button>
-    <button onclick="togglePlay()" id="playBtn">▶</button>
-    <button onclick="nextSong()">⏭</button>
-    <button id="shuffleBtn">Shuffle</button>
-    <button id="repeatBtn">Repeat</button>
+    <button class="control-btn" onclick="prevSong()">⏮</button>
+    <button class="control-btn" onclick="togglePlay()" id="playBtn">▶</button>
+    <button class="control-btn" onclick="nextSong()">⏭</button>
+    <button class="control-btn" id="shuffleBtn">🔀</button>
+    <button class="control-btn" id="repeatBtn">🔁</button>
 
     <div class="progress-container" onclick="seek(event)">
       <div class="progress" id="progress"></div>
@@ -213,9 +235,9 @@ footer {
 
 <script>
 const songs = [
-  { title: "Song One", file: "music/song1.mp3", cover: "https://picsum.photos/50?1" },
-  { title: "Song Two", file: "music/song2.mp3", cover: "https://picsum.photos/50?2" },
-  { title: "Song Three", file: "music/song3.mp3", cover: "https://picsum.photos/50?3" }
+  { title: "Song One", file: "music/song1.mp3", cover: "https://picsum.photos/60?1" },
+  { title: "Song Two", file: "music/song2.mp3", cover: "https://picsum.photos/60?2" },
+  { title: "Song Three", file: "music/song3.mp3", cover: "https://picsum.photos/60?3" }
 ];
 
 const audio = new Audio();
@@ -234,7 +256,7 @@ let currentIndex = 0;
 let shuffle = false;
 let repeat = false;
 
-/* Create Visualizer Bars */
+/* Visualizer bars */
 for (let i = 0; i < 20; i++) {
   const bar = document.createElement("div");
   bar.classList.add("bar");
@@ -243,17 +265,13 @@ for (let i = 0; i < 20; i++) {
 }
 
 function loadSong(index) {
-  audio.style.opacity = 0;
-  setTimeout(() => {
-    currentIndex = index;
-    audio.src = songs[index].file;
-    nowPlaying.textContent = "Now Playing: " + songs[index].title;
-    highlightSong();
-    audio.play();
-    playBtn.textContent = "⏸";
-    audio.style.opacity = 1;
-    scrollToActive();
-  }, 300);
+  currentIndex = index;
+  audio.src = songs[index].file;
+  nowPlaying.textContent = "Now Playing: " + songs[index].title;
+  highlightSong();
+  audio.play();
+  playBtn.textContent = "⏸";
+  scrollToActive();
 }
 
 function togglePlay() {
@@ -283,10 +301,7 @@ function nextSong() {
 audio.addEventListener("timeupdate", () => {
   const percent = (audio.currentTime / audio.duration) * 100;
   progress.style.width = percent + "%";
-
-  const current = formatTime(audio.currentTime);
-  const total = formatTime(audio.duration);
-  timeDisplay.textContent = current + " / " + total;
+  timeDisplay.textContent = formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
 });
 
 audio.addEventListener("ended", () => {
@@ -297,8 +312,7 @@ audio.addEventListener("ended", () => {
 function seek(e) {
   const width = e.currentTarget.clientWidth;
   const clickX = e.offsetX;
-  const duration = audio.duration;
-  audio.currentTime = (clickX / width) * duration;
+  audio.currentTime = (clickX / width) * audio.duration;
 }
 
 function formatTime(seconds) {
@@ -341,7 +355,7 @@ function scrollToActive() {
   active.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-/* Background Rotation */
+/* Background change */
 const backgrounds = [
   "radial-gradient(circle at center, #4b0082, black 60%)",
   "radial-gradient(circle at center, #2b0033, black 60%)",
@@ -349,12 +363,10 @@ const backgrounds = [
 ];
 
 let bgIndex = 0;
-
 function changeBackground() {
   document.body.style.background = backgrounds[bgIndex];
   bgIndex = (bgIndex + 1) % backgrounds.length;
 }
-
 changeBackground();
 setInterval(changeBackground, 30000);
 
