@@ -44,12 +44,12 @@ body {
 /* Logo */
 .logo {
   text-align: center;
-  font-size: 42px;
-  font-weight: bold;
-  letter-spacing: 5px;
-  color: #bb66ff;
-  text-shadow: 0 0 15px #bb66ff, 0 0 30px purple;
   margin-bottom: 40px;
+}
+
+.logo img {
+  max-width: 320px;
+  width: 100%;
 }
 
 /* Playlist */
@@ -116,7 +116,6 @@ body {
   font-size: 18px;
 }
 
-/* BIGGER CONTROLS */
 .controls {
   display: flex;
   align-items: center;
@@ -164,7 +163,7 @@ body {
 
 .time {
   font-size: 14px;
-  width: 100px;
+  width: 110px;
   text-align: right;
 }
 
@@ -202,7 +201,7 @@ footer {
 <div class="overlay">
 
   <div class="logo">
-    YOUR BAND LOGO
+    <img src="images/logo.png" alt="Band Logo">
   </div>
 
   <div class="playlist" id="playlist"></div>
@@ -234,12 +233,6 @@ footer {
 </div>
 
 <script>
-const songs = [
-  { title: "Song One", file: "music/song1.mp3", cover: "https://picsum.photos/60?1" },
-  { title: "Song Two", file: "music/song2.mp3", cover: "https://picsum.photos/60?2" },
-  { title: "Song Three", file: "music/song3.mp3", cover: "https://picsum.photos/60?3" }
-];
-
 const audio = new Audio();
 audio.volume = 0.9;
 
@@ -252,16 +245,39 @@ const shuffleBtn = document.getElementById("shuffleBtn");
 const repeatBtn = document.getElementById("repeatBtn");
 const visualizer = document.getElementById("visualizer");
 
+let songs = [];
 let currentIndex = 0;
 let shuffle = false;
 let repeat = false;
 
-/* Visualizer bars */
-for (let i = 0; i < 20; i++) {
-  const bar = document.createElement("div");
-  bar.classList.add("bar");
-  bar.style.animationDelay = (i * 0.1) + "s";
-  visualizer.appendChild(bar);
+/* Load songs.json */
+fetch("music/songs.json")
+  .then(res => res.json())
+  .then(data => {
+    songs = data.map(song => ({
+      file: "music/" + song.file,
+      title: song.title,
+      image: song.image
+    }));
+
+    buildPlaylist();
+    loadSong(0);
+  });
+
+function buildPlaylist() {
+  playlistDiv.innerHTML = "";
+
+  songs.forEach((song, index) => {
+    const songDiv = document.createElement("div");
+    songDiv.classList.add("song");
+    songDiv.innerHTML = `
+      <img src="${song.image}" alt="${song.title}">
+      <div class="song-info">${song.title}</div>
+      <a class="download" href="${song.file}" download>Download</a>
+    `;
+    songDiv.onclick = () => loadSong(index);
+    playlistDiv.appendChild(songDiv);
+  });
 }
 
 function loadSong(index) {
@@ -299,9 +315,11 @@ function nextSong() {
 }
 
 audio.addEventListener("timeupdate", () => {
+  if (!audio.duration) return;
   const percent = (audio.currentTime / audio.duration) * 100;
   progress.style.width = percent + "%";
-  timeDisplay.textContent = formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
+  timeDisplay.textContent =
+    formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
 });
 
 audio.addEventListener("ended", () => {
@@ -332,18 +350,6 @@ repeatBtn.onclick = () => {
   repeatBtn.classList.toggle("active", repeat);
 };
 
-songs.forEach((song, index) => {
-  const songDiv = document.createElement("div");
-  songDiv.classList.add("song");
-  songDiv.innerHTML = `
-    <img src="${song.cover}">
-    <div class="song-info">${song.title}</div>
-    <a class="download" href="${song.file}" download>Download</a>
-  `;
-  songDiv.onclick = () => loadSong(index);
-  playlistDiv.appendChild(songDiv);
-});
-
 function highlightSong() {
   document.querySelectorAll(".song").forEach((el, i) => {
     el.classList.toggle("active", i === currentIndex);
@@ -352,25 +358,16 @@ function highlightSong() {
 
 function scrollToActive() {
   const active = document.querySelector(".song.active");
-  active.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (active) active.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-/* Background change */
-const backgrounds = [
-  "radial-gradient(circle at center, #4b0082, black 60%)",
-  "radial-gradient(circle at center, #2b0033, black 60%)",
-  "radial-gradient(circle at center, #000000, #4b0082 70%)"
-];
-
-let bgIndex = 0;
-function changeBackground() {
-  document.body.style.background = backgrounds[bgIndex];
-  bgIndex = (bgIndex + 1) % backgrounds.length;
+/* Visualizer */
+for (let i = 0; i < 20; i++) {
+  const bar = document.createElement("div");
+  bar.classList.add("bar");
+  bar.style.animationDelay = (i * 0.1) + "s";
+  visualizer.appendChild(bar);
 }
-changeBackground();
-setInterval(changeBackground, 30000);
-
-loadSong(0);
 </script>
 
 </body>
