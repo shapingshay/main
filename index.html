@@ -240,7 +240,7 @@ fetch("music/songs.json")
     }));
 
     buildPlaylist();
-    loadSong(0);
+    loadSong(0, false);   // ✅ Load first song but do NOT autoplay
   });
 
 function buildPlaylist() {
@@ -254,19 +254,24 @@ function buildPlaylist() {
       <div class="song-info">${song.title}</div>
       <a class="download" href="${song.file}" download>Download</a>
     `;
-    songDiv.onclick = () => loadSong(index);
+    songDiv.onclick = () => loadSong(index, true);
     playlistDiv.appendChild(songDiv);
   });
 }
 
-function loadSong(index) {
+function loadSong(index, autoPlay = true) {
   currentIndex = index;
   audio.src = songs[index].file;
   nowPlaying.textContent = "Now Playing: " + songs[index].title;
   highlightSong();
-  audio.play();
-  playBtn.textContent = "⏸";
   scrollToActive();
+
+  if (autoPlay) {
+    audio.play();
+    playBtn.textContent = "⏸";
+  } else {
+    playBtn.textContent = "▶";
+  }
 }
 
 function togglePlay() {
@@ -281,7 +286,7 @@ function togglePlay() {
 
 function prevSong() {
   currentIndex = (currentIndex - 1 + songs.length) % songs.length;
-  loadSong(currentIndex);
+  loadSong(currentIndex, true);
 }
 
 function nextSong() {
@@ -290,7 +295,7 @@ function nextSong() {
   } else {
     currentIndex = (currentIndex + 1) % songs.length;
   }
-  loadSong(currentIndex);
+  loadSong(currentIndex, true);
 }
 
 audio.addEventListener("timeupdate", () => {
@@ -302,7 +307,7 @@ audio.addEventListener("timeupdate", () => {
 });
 
 audio.addEventListener("ended", () => {
-  if (repeat) loadSong(currentIndex);
+  if (repeat) loadSong(currentIndex, true);
   else nextSong();
 });
 
