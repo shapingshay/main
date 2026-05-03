@@ -1,5 +1,17 @@
 [
-  "01.Song 1.mp3",
-  "02.Song 2.mp3",
-  "03.Song 3.mp3"
+  {
+    "file": "01.Song 1.mp3",
+    "title": "Song 1",
+    "image": "images/song1.jpg"
+  },
+  {
+    "file": "02.Song 2.mp3",
+    "title": "Song 2",
+    "image": "images/song2.jpg"
+  },
+  {
+    "file": "03.Song 3.mp3",
+    "title": "Song 3",
+    "image": "images/song3.jpg"
+  }
 ]
