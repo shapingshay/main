@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shaping Shay</title>
+<title>Your Band Name</title>
 
 <style>
 * { box-sizing: border-box; }
@@ -145,14 +145,16 @@ body {
   color: black;
 }
 
-/* Progress Bar */
+/* Thicker Progress Bar */
 .progress-container {
   flex: 1;
-  height: 12px;
+  height: 18px;
   background: #222;
   cursor: pointer;
   position: relative;
   border: 1px solid purple;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .progress {
@@ -165,25 +167,6 @@ body {
   font-size: 14px;
   width: 110px;
   text-align: right;
-}
-
-/* Visualizer */
-.visualizer {
-  display: flex;
-  gap: 4px;
-  height: 25px;
-  margin-top: 8px;
-}
-
-.bar {
-  width: 5px;
-  background: #bb66ff;
-  animation: bounce 1s infinite ease-in-out;
-}
-
-@keyframes bounce {
-  0%,100% { height: 5px; }
-  50% { height: 25px; }
 }
 
 footer {
@@ -228,8 +211,6 @@ footer {
 
     <div class="time" id="timeDisplay">0:00 / 0:00</div>
   </div>
-
-  <div class="visualizer" id="visualizer"></div>
 </div>
 
 <script>
@@ -243,14 +224,12 @@ const nowPlaying = document.getElementById("nowPlaying");
 const playBtn = document.getElementById("playBtn");
 const shuffleBtn = document.getElementById("shuffleBtn");
 const repeatBtn = document.getElementById("repeatBtn");
-const visualizer = document.getElementById("visualizer");
 
 let songs = [];
 let currentIndex = 0;
 let shuffle = false;
 let repeat = false;
 
-/* Load songs.json */
 fetch("music/songs.json")
   .then(res => res.json())
   .then(data => {
@@ -359,14 +338,6 @@ function highlightSong() {
 function scrollToActive() {
   const active = document.querySelector(".song.active");
   if (active) active.scrollIntoView({ behavior: "smooth", block: "center" });
-}
-
-/* Visualizer */
-for (let i = 0; i < 20; i++) {
-  const bar = document.createElement("div");
-  bar.classList.add("bar");
-  bar.style.animationDelay = (i * 0.1) + "s";
-  visualizer.appendChild(bar);
 }
 </script>
 
