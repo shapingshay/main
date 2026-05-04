@@ -251,6 +251,7 @@ playBtn.addEventListener("click", togglePlay);
 progressContainer.addEventListener("click", seek);
 let songs = [];
 let currentIndex = 0;
+let hasCountedPlay = false;
 
 fetch("music/songs.json")
   .then(res => res.json())
@@ -306,7 +307,11 @@ function loadSong(index, autoPlay = true) {
   currentIndex = index;
   audio.src = songs[index].file;
   nowPlaying.textContent = "Now Playing: " + songs[index].title;
+
+  hasCountedPlay = false; // ✅ Reset for new song
+
   highlightSong();
+
   if (autoPlay) audio.play();
 }
 
@@ -325,9 +330,15 @@ function nextSong() {
 }
 
 audio.addEventListener("play", () => {
+
   playBtn.textContent = "⏸";
   playBtn.classList.add("playing");
-  incrementPlay();
+
+  // ✅ Only count first actual play
+  if (!hasCountedPlay) {
+    incrementPlay();
+    hasCountedPlay = true;
+  }
 });
 
 audio.addEventListener("pause", () => {
