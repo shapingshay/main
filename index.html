@@ -218,16 +218,16 @@ body {
 <div class="sticky-player">
   <div class="now-playing" id="nowPlaying">Now Playing: —</div>
   <div class="controls">
-    <button class="control-btn" onclick="prevSong()">⏮</button>
-    <button class="control-btn" onclick="togglePlay()" id="playBtn">▶</button>
-    <button class="control-btn" onclick="nextSong()">⏭</button>
+  <button class="control-btn" id="prevBtn">⏮</button>
+  <button class="control-btn" id="playBtn">▶</button>
+  <button class="control-btn" id="nextBtn">⏭</button>
 
-    <div class="progress-container" onclick="seek(event)">
-      <div class="progress" id="progress"></div>
-    </div>
-
-    <div class="time" id="timeDisplay">0:00 / 0:00</div>
+  <div class="progress-container" id="progressContainer">
+    <div class="progress" id="progress"></div>
   </div>
+
+  <div class="time" id="timeDisplay">0:00 / 0:00</div>
+</div>
 </div>
 
 <script type="module">
@@ -241,7 +241,14 @@ const progress = document.getElementById("progress");
 const timeDisplay = document.getElementById("timeDisplay");
 const nowPlaying = document.getElementById("nowPlaying");
 const playBtn = document.getElementById("playBtn");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const progressContainer = document.getElementById("progressContainer");
 
+prevBtn.addEventListener("click", prevSong);
+nextBtn.addEventListener("click", nextSong);
+playBtn.addEventListener("click", togglePlay);
+progressContainer.addEventListener("click", seek);
 let songs = [];
 let currentIndex = 0;
 
