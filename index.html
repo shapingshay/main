@@ -3,7 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Your Band Name</title>
+<title>Shaping Shay</title>
+
+<!-- Firebase SDK (Modular v10) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ✅ REPLACE WITH YOUR OWN CONFIG
+  const firebaseConfig = {
+  apiKey: "AIzaSyDluUOyyk1qdndO2729JiXkY_0w829ttoc",
+  authDomain: "your-band-player.firebaseapp.com",
+  projectId: "your-band-player",
+  storageBucket: "your-band-player.firebasestorage.app",
+  messagingSenderId: "43893185871",
+  appId: "1:43893185871:web:35c2f3e5fcab4bb2d1393a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.db = db;
+  window.firebaseTools = { doc, getDoc, setDoc, updateDoc, increment, onSnapshot };
+</script>
 
 <style>
 * { box-sizing: border-box; }
@@ -14,10 +36,8 @@ body {
   color: white;
   overflow-x: hidden;
   background: black;
-  transition: background 2s ease-in-out;
 }
 
-/* Animated background */
 .background-animate {
   position: fixed;
   width: 200%;
@@ -41,7 +61,6 @@ body {
   padding: 30px 20px 140px 20px;
 }
 
-/* Logo */
 .logo {
   text-align: center;
   margin-bottom: 40px;
@@ -52,7 +71,6 @@ body {
   width: 100%;
 }
 
-/* Playlist */
 .playlist {
   max-width: 800px;
   margin: 0 auto;
@@ -92,13 +110,18 @@ body {
   flex: 1;
 }
 
+.play-count {
+  font-size: 13px;
+  color: #aaa;
+  margin-top: 4px;
+}
+
 .download {
   color: #bb66ff;
   text-decoration: none;
   font-size: 14px;
 }
 
-/* Sticky Player */
 .sticky-player {
   position: fixed;
   bottom: 0;
@@ -124,15 +147,21 @@ body {
 }
 
 .control-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 2px solid purple;
+  background: linear-gradient(145deg, #2b0033, #000);
+  color: #bb66ff;
   width: 55px;
   height: 55px;
-  background: linear-gradient(145deg, #2b0033, #000);
-  border: 2px solid purple;
-  color: #bb66ff;
   font-size: 20px;
   cursor: pointer;
   box-shadow: 0 0 10px rgba(187,102,255,0.6);
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .control-btn:hover {
@@ -140,18 +169,21 @@ body {
   box-shadow: 0 0 20px #bb66ff;
 }
 
-.control-btn.active {
-  background: #bb66ff;
-  color: black;
+@keyframes pulseGlow {
+  0%   { box-shadow: 0 0 10px rgba(187,102,255,0.6); }
+  50%  { box-shadow: 0 0 25px rgba(187,102,255,1); }
+  100% { box-shadow: 0 0 10px rgba(187,102,255,0.6); }
 }
 
-/* Thicker Progress Bar */
+.control-btn.playing {
+  animation: pulseGlow 1.5s infinite ease-in-out;
+}
+
 .progress-container {
   flex: 1;
   height: 18px;
   background: #222;
   cursor: pointer;
-  position: relative;
   border: 1px solid purple;
   border-radius: 8px;
   overflow: hidden;
@@ -168,12 +200,6 @@ body {
   width: 110px;
   text-align: right;
 }
-
-footer {
-  text-align: center;
-  margin-top: 40px;
-  color: #888;
-}
 </style>
 </head>
 
@@ -182,28 +208,19 @@ footer {
 <div class="background-animate"></div>
 
 <div class="overlay">
-
   <div class="logo">
     <img src="images/logo.png" alt="Band Logo">
   </div>
 
   <div class="playlist" id="playlist"></div>
-
-  <footer>
-    © 2026 Your Band Name
-  </footer>
-
 </div>
 
 <div class="sticky-player">
   <div class="now-playing" id="nowPlaying">Now Playing: —</div>
-
   <div class="controls">
     <button class="control-btn" onclick="prevSong()">⏮</button>
     <button class="control-btn" onclick="togglePlay()" id="playBtn">▶</button>
     <button class="control-btn" onclick="nextSong()">⏭</button>
-    <button class="control-btn" id="shuffleBtn">🔀</button>
-    <button class="control-btn" id="repeatBtn">🔁</button>
 
     <div class="progress-container" onclick="seek(event)">
       <div class="progress" id="progress"></div>
@@ -213,22 +230,20 @@ footer {
   </div>
 </div>
 
-<script>
-const audio = new Audio();
-audio.volume = 0.9;
+<script type="module">
+import { doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+const db = window.db;
+
+const audio = new Audio();
 const playlistDiv = document.getElementById("playlist");
 const progress = document.getElementById("progress");
 const timeDisplay = document.getElementById("timeDisplay");
 const nowPlaying = document.getElementById("nowPlaying");
 const playBtn = document.getElementById("playBtn");
-const shuffleBtn = document.getElementById("shuffleBtn");
-const repeatBtn = document.getElementById("repeatBtn");
 
 let songs = [];
 let currentIndex = 0;
-let shuffle = false;
-let repeat = false;
 
 fetch("music/songs.json")
   .then(res => res.json())
@@ -238,25 +253,46 @@ fetch("music/songs.json")
       title: song.title,
       image: song.image
     }));
-
     buildPlaylist();
-    loadSong(0, false);   // ✅ Load first song but do NOT autoplay
+    loadSong(0, false);
   });
 
-function buildPlaylist() {
+async function buildPlaylist() {
   playlistDiv.innerHTML = "";
 
-  songs.forEach((song, index) => {
+  for (let i = 0; i < songs.length; i++) {
+    const song = songs[i];
+    const songId = song.file.replace(/\W/g, "_");
+    const songRef = doc(db, "plays", songId);
+
     const songDiv = document.createElement("div");
     songDiv.classList.add("song");
+
     songDiv.innerHTML = `
-      <img src="${song.image}" alt="${song.title}">
-      <div class="song-info">${song.title}</div>
+      <img src="${song.image}">
+      <div class="song-info">
+        <div>${song.title}</div>
+        <div class="play-count" id="plays-${i}">0 plays</div>
+      </div>
       <a class="download" href="${song.file}" download>Download</a>
     `;
-    songDiv.onclick = () => loadSong(index, true);
+
+    songDiv.onclick = () => loadSong(i, true);
     playlistDiv.appendChild(songDiv);
-  });
+
+    onSnapshot(songRef, (docSnap) => {
+      const count = docSnap.exists() ? docSnap.data().count : 0;
+      document.getElementById(`plays-${i}`).textContent = count + " plays";
+    });
+  }
+}
+
+async function incrementPlay() {
+  const song = songs[currentIndex];
+  const songId = song.file.replace(/\W/g, "_");
+  const songRef = doc(db, "plays", songId);
+
+  await setDoc(songRef, { count: increment(1) }, { merge: true });
 }
 
 function loadSong(index, autoPlay = true) {
@@ -264,24 +300,11 @@ function loadSong(index, autoPlay = true) {
   audio.src = songs[index].file;
   nowPlaying.textContent = "Now Playing: " + songs[index].title;
   highlightSong();
-  scrollToActive();
-
-  if (autoPlay) {
-    audio.play();
-    playBtn.textContent = "⏸";
-  } else {
-    playBtn.textContent = "▶";
-  }
+  if (autoPlay) audio.play();
 }
 
 function togglePlay() {
-  if (audio.paused) {
-    audio.play();
-    playBtn.textContent = "⏸";
-  } else {
-    audio.pause();
-    playBtn.textContent = "▶";
-  }
+  audio.paused ? audio.play() : audio.pause();
 }
 
 function prevSong() {
@@ -290,13 +313,20 @@ function prevSong() {
 }
 
 function nextSong() {
-  if (shuffle) {
-    currentIndex = Math.floor(Math.random() * songs.length);
-  } else {
-    currentIndex = (currentIndex + 1) % songs.length;
-  }
+  currentIndex = (currentIndex + 1) % songs.length;
   loadSong(currentIndex, true);
 }
+
+audio.addEventListener("play", () => {
+  playBtn.textContent = "⏸";
+  playBtn.classList.add("playing");
+  incrementPlay();
+});
+
+audio.addEventListener("pause", () => {
+  playBtn.textContent = "▶";
+  playBtn.classList.remove("playing");
+});
 
 audio.addEventListener("timeupdate", () => {
   if (!audio.duration) return;
@@ -304,11 +334,6 @@ audio.addEventListener("timeupdate", () => {
   progress.style.width = percent + "%";
   timeDisplay.textContent =
     formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
-});
-
-audio.addEventListener("ended", () => {
-  if (repeat) loadSong(currentIndex, true);
-  else nextSong();
 });
 
 function seek(e) {
@@ -324,25 +349,10 @@ function formatTime(seconds) {
   return minutes + ":" + (secs < 10 ? "0" : "") + secs;
 }
 
-shuffleBtn.onclick = () => {
-  shuffle = !shuffle;
-  shuffleBtn.classList.toggle("active", shuffle);
-};
-
-repeatBtn.onclick = () => {
-  repeat = !repeat;
-  repeatBtn.classList.toggle("active", repeat);
-};
-
 function highlightSong() {
   document.querySelectorAll(".song").forEach((el, i) => {
     el.classList.toggle("active", i === currentIndex);
   });
-}
-
-function scrollToActive() {
-  const active = document.querySelector(".song.active");
-  if (active) active.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 </script>
 
