@@ -10,14 +10,13 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // ✅ REPLACE WITH YOUR OWN CONFIG
   const firebaseConfig = {
-  apiKey: "AIzaSyDluUOyyk1qdndO2729JiXkY_0w829ttoc",
-  authDomain: "your-band-player.firebaseapp.com",
-  projectId: "your-band-player",
-  storageBucket: "your-band-player.firebasestorage.app",
-  messagingSenderId: "43893185871",
-  appId: "1:43893185871:web:35c2f3e5fcab4bb2d1393a"
+    apiKey: "AIzaSyDluUOyyk1qdndO2729JiXkY_0w829ttoc",
+    authDomain: "your-band-player.firebaseapp.com",
+    projectId: "your-band-player",
+    storageBucket: "your-band-player.firebasestorage.app",
+    messagingSenderId: "43893185871",
+    appId: "1:43893185871:web:35c2f3e5fcab4bb2d1393a"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -35,28 +34,17 @@ body {
   font-family: Arial, sans-serif;
   color: white;
   overflow-x: hidden;
-  background: black;
-}
 
-.background-animate {
-  position: fixed;
-  width: 200%;
-  height: 200%;
-  top: -50%;
-  left: -50%;
-  background: radial-gradient(circle at center, #4b0082, black 60%);
-  animation: moveBg 25s linear infinite;
-  z-index: -2;
-  opacity: 0.5;
-}
+  /* ✅ Background image with vignette */
+  background:
+    radial-gradient(circle at center, rgba(0,0,0,0.3), rgba(0,0,0,0.85)),
+    url("images/background.png") center center / cover no-repeat fixed;
 
-@keyframes moveBg {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  background-color: black;
 }
 
 .overlay {
-  background: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.75);
   min-height: 100vh;
   padding: 30px 20px 140px 20px;
 }
@@ -78,6 +66,7 @@ body {
   overflow-y: auto;
   border: 1px solid purple;
   background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
 }
 
 .song {
@@ -126,10 +115,11 @@ body {
   position: fixed;
   bottom: 0;
   width: 100%;
-  background: #0a0a0a;
+  background: rgba(10,10,10,0.95);
   border-top: 3px solid purple;
   padding: 15px;
   box-shadow: 0 -5px 20px rgba(187,102,255,0.3);
+  backdrop-filter: blur(10px);
 }
 
 .now-playing {
@@ -205,8 +195,6 @@ body {
 
 <body>
 
-<div class="background-animate"></div>
-
 <div class="overlay">
   <div class="logo">
     <img src="images/logo.png" alt="Band Logo">
@@ -218,20 +206,20 @@ body {
 <div class="sticky-player">
   <div class="now-playing" id="nowPlaying">Now Playing: —</div>
   <div class="controls">
-  <button class="control-btn" id="prevBtn">⏮</button>
-  <button class="control-btn" id="playBtn">▶</button>
-  <button class="control-btn" id="nextBtn">⏭</button>
+    <button class="control-btn" id="prevBtn">⏮</button>
+    <button class="control-btn" id="playBtn">▶</button>
+    <button class="control-btn" id="nextBtn">⏭</button>
 
-  <div class="progress-container" id="progressContainer">
-    <div class="progress" id="progress"></div>
+    <div class="progress-container" id="progressContainer">
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <div class="time" id="timeDisplay">0:00 / 0:00</div>
   </div>
-
-  <div class="time" id="timeDisplay">0:00 / 0:00</div>
-</div>
 </div>
 
 <script type="module">
-import { doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { doc, setDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const db = window.db;
 
@@ -249,6 +237,7 @@ prevBtn.addEventListener("click", prevSong);
 nextBtn.addEventListener("click", nextSong);
 playBtn.addEventListener("click", togglePlay);
 progressContainer.addEventListener("click", seek);
+
 let songs = [];
 let currentIndex = 0;
 let hasCountedPlay = false;
@@ -299,7 +288,6 @@ async function incrementPlay() {
   const song = songs[currentIndex];
   const songId = song.file.replace(/\W/g, "_");
   const songRef = doc(db, "plays", songId);
-
   await setDoc(songRef, { count: increment(1) }, { merge: true });
 }
 
@@ -307,11 +295,8 @@ function loadSong(index, autoPlay = true) {
   currentIndex = index;
   audio.src = songs[index].file;
   nowPlaying.textContent = "Now Playing: " + songs[index].title;
-
-  hasCountedPlay = false; // ✅ Reset for new song
-
+  hasCountedPlay = false;
   highlightSong();
-
   if (autoPlay) audio.play();
 }
 
@@ -330,11 +315,8 @@ function nextSong() {
 }
 
 audio.addEventListener("play", () => {
-
   playBtn.textContent = "⏸";
   playBtn.classList.add("playing");
-
-  // ✅ Only count first actual play
   if (!hasCountedPlay) {
     incrementPlay();
     hasCountedPlay = true;
