@@ -6,7 +6,6 @@
 <title>Shaping Shay</title>
 
 <style>
-/* --- STYLES UNCHANGED --- */
 * { box-sizing: border-box; }
 
 body {
@@ -52,17 +51,17 @@ body {
   padding: 15px;
   border-bottom: 1px solid #222;
   cursor: pointer;
+  transition: background 0.2s;
 }
+
+.song:hover { background: rgba(128,0,128,0.4); }
+.song.active { background: rgba(187,102,255,0.5); }
 
 .song img {
   width: 55px;
   height: 55px;
   object-fit: cover;
   border: 1px solid purple;
-}
-
-.song.active {
-  background: rgba(187,102,255,0.5);
 }
 
 .song-info { flex: 1; }
@@ -81,8 +80,6 @@ body {
   cursor: pointer;
   font-size: 12px;
 }
-
-/* Sticky Player */
 
 .sticky-player {
   position: fixed;
@@ -121,6 +118,10 @@ body {
   stroke-linejoin: round;
 }
 
+.control-btn.active {
+  box-shadow: 0 0 15px #bb66ff;
+}
+
 .progress-container {
   flex: 1;
   height: 18px;
@@ -132,7 +133,7 @@ body {
 .progress {
   height: 100%;
   width: 0%;
-  background: purple;
+  background: linear-gradient(90deg, purple, #bb66ff);
 }
 
 .time {
@@ -154,12 +155,12 @@ body {
 
   <div style="max-width:900px;margin:0 auto 120px auto;padding:40px;background:rgba(0,0,0,0.65);border:1px solid purple;">
     <h2 style="color:#bb66ff;">About Shaping Shay</h2>
-    <p>Cinematic textures layered with lived experience.</p>
+    <p>Sample placeholder text describing the artistic vision, tone, and atmosphere of the project.</p>
   </div>
 
   <div style="max-width:900px;margin:0 auto 120px auto;padding:40px;background:rgba(0,0,0,0.65);border:1px solid purple;">
     <h2 style="color:#bb66ff;">About Shay Herself</h2>
-    <p>Reflection, memory, and becoming.</p>
+    <p>Sample placeholder biography content. This will be replaced with the finalized approved narrative.</p>
   </div>
 </div>
 
@@ -189,8 +190,11 @@ body {
 
     <button class="control-btn" id="shuffleBtn">
       <svg viewBox="0 0 24 24">
+        <polyline points="16 3 21 3 21 8"/>
         <line x1="4" y1="20" x2="21" y2="3"/>
-        <line x1="4" y1="4" x2="21" y2="21"/>
+        <polyline points="21 16 21 21 16 21"/>
+        <line x1="15" y1="15" x2="21" y2="21"/>
+        <line x1="4" y1="4" x2="9" y2="9"/>
       </svg>
     </button>
 
@@ -231,7 +235,6 @@ fetch("music/songs.json")
     id: song.file
   }));
   buildPlaylist();
-  loadSong(0, false);
 });
 
 async function buildPlaylist() {
@@ -245,13 +248,24 @@ async function buildPlaylist() {
 
     const div = document.createElement("div");
     div.className = "song";
+
     div.innerHTML = `
       <img src="${songs[i].image}">
       <div class="song-info">
         <div>${songs[i].title}</div>
         <div class="song-meta" id="plays-${i}">${count} plays</div>
       </div>
+      <button class="download-btn">Download</button>
     `;
+
+    div.querySelector(".download-btn").onclick = (e) => {
+      e.stopPropagation();
+      const link = document.createElement("a");
+      link.href = songs[i].file;
+      link.download = songs[i].title;
+      link.click();
+    };
+
     div.onclick = () => loadSong(i, true);
     playlist.appendChild(div);
   }
@@ -260,11 +274,16 @@ async function buildPlaylist() {
 async function incrementPlay(index) {
   const docRef = doc(db, "plays", songs[index].id);
   const snap = await getDoc(docRef);
+
   if (!snap.exists()) {
     await setDoc(docRef, { count: 1 });
   } else {
     await updateDoc(docRef, { count: increment(1) });
   }
+
+  const updated = await getDoc(docRef);
+  document.getElementById(`plays-${index}`).textContent =
+    updated.data().count + " plays";
 }
 
 function loadSong(index, autoPlay=true) {
@@ -282,11 +301,23 @@ function loadSong(index, autoPlay=true) {
 document.getElementById("playBtn").onclick =
   () => audio.paused ? audio.play() : audio.pause();
 
-document.getElementById("nextBtn").onclick = () =>
-  loadSong((currentIndex+1)%songs.length, true);
+document.getElementById("nextBtn").onclick = () => {
+  if (shuffleMode) {
+    currentIndex = Math.floor(Math.random()*songs.length);
+  } else {
+    currentIndex = (currentIndex+1)%songs.length;
+  }
+  loadSong(currentIndex,true);
+};
 
-document.getElementById("prevBtn").onclick = () =>
-  loadSong((currentIndex-1+songs.length)%songs.length, true);
+document.getElementById("prevBtn").onclick =
+  () => loadSong((currentIndex-1+songs.length)%songs.length,true);
+
+document.getElementById("shuffleBtn").onclick = () => {
+  shuffleMode = !shuffleMode;
+  document.getElementById("shuffleBtn")
+    .classList.toggle("active", shuffleMode);
+};
 </script>
 
 </body>
