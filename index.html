@@ -70,7 +70,11 @@ body {
   color: #bbb;
   margin-top: 4px;
 }
-
+.song.playing {
+  background: rgba(187, 102, 255, 0.18);
+  border-left: 4px solid #bb66ff;
+}
+  
 .download-btn {
   padding: 6px 10px;
   background: transparent;
@@ -356,6 +360,15 @@ async function incrementPlay(index) {
 
 function loadSong(index, autoPlay=true) {
   currentIndex = index;
+  // Highlight currently playing track
+document.querySelectorAll(".song").forEach(el =>
+  el.classList.remove("playing")
+);
+
+const playlistItems = document.querySelectorAll(".song");
+if (playlistItems[index]) {
+  playlistItems[index].classList.add("playing");
+}
   audio.src = songs[index].file;
 
   document.getElementById("nowPlaying").textContent =
