@@ -244,6 +244,13 @@ function setPlayIcon(isPlaying) {
 }
 
 playBtn.onclick = () => {
+
+  // If nothing has been loaded yet, start first track
+  if (!audio.src && songs.length > 0) {
+    loadSong(0, true);
+    return;
+  }
+
   if (audio.paused) {
     audio.play();
   } else {
