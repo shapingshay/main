@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+\<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -55,7 +55,6 @@ body {
 }
 
 .song:hover { background: rgba(128,0,128,0.4); }
-.song.active { background: rgba(187,102,255,0.5); }
 
 .song img {
   width: 55px;
@@ -106,6 +105,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: box-shadow 0.2s;
+}
+
+.control-btn:hover {
+  box-shadow: 0 0 15px #bb66ff;
+}
+
+.control-btn.active {
+  box-shadow: 0 0 15px #bb66ff;
 }
 
 .control-btn svg {
@@ -116,10 +124,6 @@ body {
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.control-btn.active {
-  box-shadow: 0 0 15px #bb66ff;
 }
 
 .progress-container {
@@ -156,12 +160,12 @@ body {
 
   <div style="max-width:900px;margin:0 auto 120px auto;padding:40px;background:rgba(0,0,0,0.65);border:1px solid purple;">
     <h2 style="color:#bb66ff;">About Shaping Shay</h2>
-    <p>Sample placeholder text describing the artistic vision, tone, and atmosphere of the project.</p>
+    <p>Sample placeholder text describing the artistic vision of the project.</p>
   </div>
 
   <div style="max-width:900px;margin:0 auto 120px auto;padding:40px;background:rgba(0,0,0,0.65);border:1px solid purple;">
     <h2 style="color:#bb66ff;">About Shay Herself</h2>
-    <p>Sample placeholder biography content. This will be replaced with finalized approved narrative.</p>
+    <p>Sample placeholder biography content to be replaced later.</p>
   </div>
 </div>
 
@@ -177,8 +181,8 @@ body {
     </button>
 
     <button class="control-btn" id="playBtn">
-      <svg viewBox="0 0 24 24">
-        <polygon points="6 4 20 12 6 20 6 4"/>
+      <svg id="playIcon" viewBox="0 0 24 24">
+        <polygon id="playShape" points="6 4 20 12 6 20 6 4"/>
       </svg>
     </button>
 
@@ -229,6 +233,27 @@ let shuffleMode = false;
 const progress = document.getElementById("progress");
 const progressContainer = document.getElementById("progressContainer");
 const timeDisplay = document.getElementById("timeDisplay");
+const playBtn = document.getElementById("playBtn");
+const playIcon = document.getElementById("playIcon");
+
+function setPlayIcon(isPlaying) {
+  playIcon.innerHTML = isPlaying
+    ? `<line x1="6" y1="4" x2="6" y2="20"/>
+       <line x1="18" y1="4" x2="18" y2="20"/>`
+    : `<polygon points="6 4 20 12 6 20 6 4"/>`;
+}
+
+playBtn.onclick = () => {
+  if (audio.paused) {
+    audio.play();
+  } else {
+    audio.pause();
+  }
+};
+
+audio.addEventListener("play", () => setPlayIcon(true));
+audio.addEventListener("pause", () => setPlayIcon(false));
+audio.addEventListener("ended", () => setPlayIcon(false));
 
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
@@ -325,9 +350,6 @@ function loadSong(index, autoPlay=true) {
     audio.play();
   }
 }
-
-document.getElementById("playBtn").onclick =
-  () => audio.paused ? audio.play() : audio.pause();
 
 document.getElementById("nextBtn").onclick = () => {
   if (shuffleMode) {
