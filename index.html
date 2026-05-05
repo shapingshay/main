@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shaping Shay</title>
 
-<!-- Firebase SDK (Modular v10) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, setDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -21,7 +20,6 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-
   window.db = db;
 </script>
 
@@ -34,7 +32,6 @@ body {
   color: white;
   overflow-x: hidden;
 
-  /* ✅ Background image with vignette */
   background:
     radial-gradient(circle at center, rgba(0,0,0,0.3), rgba(0,0,0,0.85)),
     url("images/background.png") center center / cover no-repeat fixed;
@@ -58,7 +55,7 @@ body {
   width: 100%;
 }
 
-/* ✅ Playlist keeps internal scroll */
+/* Playlist */
 .playlist {
   max-width: 800px;
   margin: 0 auto 100px auto;
@@ -109,10 +106,10 @@ body {
   font-size: 14px;
 }
 
-/* ✅ About Section */
+/* About Sections */
 .about-section {
   max-width: 800px;
-  margin: 0 auto 200px auto;
+  margin: 0 auto 120px auto;
   padding: 40px;
   background: rgba(0,0,0,0.65);
   border: 1px solid purple;
@@ -138,7 +135,7 @@ body {
   color: #ddd;
 }
 
-/* ✅ Sticky Player */
+/* Sticky Player */
 .sticky-player {
   position: fixed;
   bottom: 0;
@@ -166,7 +163,6 @@ body {
 
 .control-btn {
   appearance: none;
-  -webkit-appearance: none;
   border: 2px solid purple;
   background: linear-gradient(145deg, #2b0033, #000);
   color: #bb66ff;
@@ -184,16 +180,6 @@ body {
 .control-btn:hover {
   transform: scale(1.1);
   box-shadow: 0 0 20px #bb66ff;
-}
-
-@keyframes pulseGlow {
-  0%   { box-shadow: 0 0 10px rgba(187,102,255,0.6); }
-  50%  { box-shadow: 0 0 25px rgba(187,102,255,1); }
-  100% { box-shadow: 0 0 10px rgba(187,102,255,0.6); }
-}
-
-.control-btn.playing {
-  animation: pulseGlow 1.5s infinite ease-in-out;
 }
 
 .progress-container {
@@ -229,21 +215,37 @@ body {
 
   <div class="playlist" id="playlist"></div>
 
-  <!-- ✅ About Section -->
-  <div class="about-section" id="aboutSection">
+  <!-- About the Project -->
+  <div class="about-section">
     <h2>About Shaping Shay</h2>
     <p>
       Shaping Shay is a project built around atmosphere, emotion, and texture.
       Each track explores a different shade of vulnerability, blending layered
       instrumentation with cinematic space and restrained intensity. The music
-      is designed to feel immersive rather than immediate — something that
-      unfolds gradually and reveals new details with each listen. Inspired by
-      late‑night drives, dimly lit stages, and the quiet moments between chaos,
-      Shaping Shay exists in that space where reflection meets momentum. This
-      isn’t just a collection of songs, but a mood — one that invites you to
-      sit with it, feel it, and stay a little longer.
+      unfolds gradually, revealing new details with every listen. Inspired by
+      late‑night drives, dimly lit stages, and the quiet tension between chaos
+      and clarity, the project lives in that reflective space where sound and
+      emotion intersect.
     </p>
   </div>
+
+  <!-- ✅ NEW SECTION -->
+  <div class="about-section">
+    <h2>About Shay Herself</h2>
+    <p>
+      This is where "full disclosure" kicks in.  Shay is the feminine persona
+      of an AMAB individual.  She was unlocked as part of their gender identity
+      journey, and these songs serve as her creative outlet, telling the stories
+      of her genuine thoughts, feelings and experiences both before being unlocked
+      and new experiences since.
+
+      If you'd like to get in touch with Shay you can find her on Reddit:
+      <a href="https://www.reddit.com/user/Shaping_Shay">https://www.reddit.com/user/Shaping_Shay</a>
+      She'd love to hear about your own journey, and if this music connects with you,
+      or just say hi!
+    </p>
+  </div>
+
 </div>
 
 <div class="sticky-player">
@@ -252,11 +254,9 @@ body {
     <button class="control-btn" id="prevBtn">⏮</button>
     <button class="control-btn" id="playBtn">▶</button>
     <button class="control-btn" id="nextBtn">⏭</button>
-
     <div class="progress-container" id="progressContainer">
       <div class="progress" id="progress"></div>
     </div>
-
     <div class="time" id="timeDisplay">0:00 / 0:00</div>
   </div>
 </div>
@@ -266,147 +266,17 @@ import { doc, setDoc, increment, onSnapshot } from "https://www.gstatic.com/fire
 
 const db = window.db;
 
-const audio = new Audio();
-const playlistDiv = document.getElementById("playlist");
-const progress = document.getElementById("progress");
-const timeDisplay = document.getElementById("timeDisplay");
-const nowPlaying = document.getElementById("nowPlaying");
-const playBtn = document.getElementById("playBtn");
-const prevBtn = document.getElementById("prevBtn");
-const nextBtn = document.getElementById("nextBtn");
-const progressContainer = document.getElementById("progressContainer");
-const aboutSection = document.getElementById("aboutSection");
+/* Fade in both about sections */
+const aboutSections = document.querySelectorAll(".about-section");
 
-prevBtn.addEventListener("click", prevSong);
-nextBtn.addEventListener("click", nextSong);
-playBtn.addEventListener("click", togglePlay);
-progressContainer.addEventListener("click", seek);
-
-/* ✅ Fade-in About section */
 window.addEventListener("scroll", () => {
-  const rect = aboutSection.getBoundingClientRect();
-  if (rect.top < window.innerHeight - 100) {
-    aboutSection.classList.add("visible");
-  }
-});
-
-/* --- Player Logic --- */
-let songs = [];
-let currentIndex = 0;
-let hasCountedPlay = false;
-
-fetch("music/songs.json")
-  .then(res => res.json())
-  .then(data => {
-    songs = data.map(song => ({
-      file: "music/" + song.file,
-      title: song.title,
-      image: song.image
-    }));
-    buildPlaylist();
-    loadSong(0, false);
+  aboutSections.forEach(section => {
+    const rect = section.getBoundingClientRect();
+    if (rect.top < window.innerHeight - 100) {
+      section.classList.add("visible");
+    }
   });
-
-async function buildPlaylist() {
-  playlistDiv.innerHTML = "";
-
-  for (let i = 0; i < songs.length; i++) {
-    const song = songs[i];
-    const songId = song.file.replace(/\W/g, "_");
-    const songRef = doc(db, "plays", songId);
-
-    const songDiv = document.createElement("div");
-    songDiv.classList.add("song");
-
-    songDiv.innerHTML = `
-      <img src="${song.image}">
-      <div class="song-info">
-        <div>${song.title}</div>
-        <div class="play-count" id="plays-${i}">0 plays</div>
-      </div>
-      <a class="download" href="${song.file}" download>Download</a>
-    `;
-
-    songDiv.onclick = () => loadSong(i, true);
-    playlistDiv.appendChild(songDiv);
-
-    onSnapshot(songRef, (docSnap) => {
-      const count = docSnap.exists() ? docSnap.data().count : 0;
-      document.getElementById(`plays-${i}`).textContent = count + " plays";
-    });
-  }
-}
-
-async function incrementPlay() {
-  const song = songs[currentIndex];
-  const songId = song.file.replace(/\W/g, "_");
-  const songRef = doc(db, "plays", songId);
-  await setDoc(songRef, { count: increment(1) }, { merge: true });
-}
-
-function loadSong(index, autoPlay = true) {
-  currentIndex = index;
-  audio.src = songs[index].file;
-  nowPlaying.textContent = "Now Playing: " + songs[index].title;
-  hasCountedPlay = false;
-  highlightSong();
-  if (autoPlay) audio.play();
-}
-
-function togglePlay() {
-  audio.paused ? audio.play() : audio.pause();
-}
-
-function prevSong() {
-  currentIndex = (currentIndex - 1 + songs.length) % songs.length;
-  loadSong(currentIndex, true);
-}
-
-function nextSong() {
-  currentIndex = (currentIndex + 1) % songs.length;
-  loadSong(currentIndex, true);
-}
-
-audio.addEventListener("play", () => {
-  playBtn.textContent = "⏸";
-  playBtn.classList.add("playing");
-  if (!hasCountedPlay) {
-    incrementPlay();
-    hasCountedPlay = true;
-  }
 });
-
-audio.addEventListener("pause", () => {
-  playBtn.textContent = "▶";
-  playBtn.classList.remove("playing");
-});
-
-audio.addEventListener("timeupdate", () => {
-  if (!audio.duration) return;
-  const percent = (audio.currentTime / audio.duration) * 100;
-  progress.style.width = percent + "%";
-  timeDisplay.textContent =
-    formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
-});
-
-function seek(e) {
-  const width = e.currentTarget.clientWidth;
-  const clickX = e.offsetX;
-  audio.currentTime = (clickX / width) * audio.duration;
-}
-
-function formatTime(seconds) {
-  if (!seconds) return "0:00";
-  const minutes = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return minutes + ":" + (secs < 10 ? "0" : "") + secs;
-}
-
-function highlightSong() {
-  document.querySelectorAll(".song").forEach((el, i) => {
-    el.classList.toggle("active", i === currentIndex);
-  });
-}
 </script>
 
 </body>
