@@ -5,25 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shaping Shay</title>
 
-<!-- Firebase Init -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDluUOyyk1qdndO2729JiXkY_0w829ttoc",
-    authDomain: "your-band-player.firebaseapp.com",
-    projectId: "your-band-player",
-    storageBucket: "your-band-player.firebasestorage.app",
-    messagingSenderId: "43893185871",
-    appId: "1:43893185871:web:35c2f3e5fcab4bb2d1393a"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window.db = db;
-</script>
-
 <style>
 * { box-sizing: border-box; }
 
@@ -32,11 +13,9 @@ body {
   font-family: Arial, sans-serif;
   color: white;
   overflow-x: hidden;
-
   background:
     radial-gradient(circle at center, rgba(0,0,0,0.3), rgba(0,0,0,0.85)),
     url("images/background.png") center center / cover no-repeat fixed;
-
   background-color: black;
 }
 
@@ -95,51 +74,6 @@ body {
 
 .song-info { flex: 1; }
 
-.play-count {
-  font-size: 13px;
-  color: #aaa;
-  margin-top: 4px;
-}
-
-.download {
-  color: #bb66ff;
-  text-decoration: none;
-  font-size: 14px;
-}
-
-/* About Sections */
-.about-section {
-  max-width: 800px;
-  margin: 0 auto 120px auto;
-  padding: 40px;
-  background: rgba(0,0,0,0.65);
-  border: 1px solid purple;
-  backdrop-filter: blur(8px);
-  opacity: 0;
-  transform: translateY(40px);
-  transition: all 0.8s ease;
-}
-
-.about-section.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.about-section h2 {
-  color: #bb66ff;
-  margin-top: 0;
-  margin-bottom: 20px;
-}
-
-.about-section p {
-  line-height: 1.7;
-  color: #ddd;
-}
-
-.about-section a {
-  color: #bb66ff;
-}
-
 /* Sticky Player */
 .sticky-player {
   position: fixed;
@@ -172,7 +106,6 @@ body {
   color: #bb66ff;
   width: 55px;
   height: 55px;
-  font-size: 20px;
   cursor: pointer;
   box-shadow: 0 0 10px rgba(187,102,255,0.6);
   transition: all 0.2s ease;
@@ -181,9 +114,23 @@ body {
   justify-content: center;
 }
 
+.control-btn svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .control-btn:hover {
   transform: scale(1.1);
   box-shadow: 0 0 20px #bb66ff;
+}
+
+.control-btn.active {
+  box-shadow: 0 0 25px #bb66ff;
 }
 
 .progress-container {
@@ -216,83 +163,110 @@ body {
   <div class="logo">
     <img src="images/logo.png" alt="Band Logo">
   </div>
-
   <div class="playlist" id="playlist"></div>
-
-  <div class="about-section">
-    <h2>About Shaping Shay</h2>
-    <p>
-      Shaping Shay is a project built around atmosphere, emotion, and texture.
-      Each track explores layered instrumentation and cinematic space.
-      Inspired by late‑night drives and quiet reflection, the project lives
-      where sound and emotion intersect.
-    </p>
-  </div>
-
-  <div class="about-section">
-    <h2>About Shay Herself</h2>
-    <p>
-      Shay is the feminine persona of an AMAB individual, unlocked during
-      a gender identity journey. These songs are her creative outlet —
-      telling stories of genuine thoughts, feelings, and experiences
-      both before and after that awakening.
-      <br><br>
-      You can connect with Shay on Reddit:
-      <a href="https://www.reddit.com/user/Shaping_Shay" target="_blank">
-      Shaping_Shay</a>.
-    </p>
-  </div>
-
 </div>
 
 <div class="sticky-player">
   <div class="now-playing" id="nowPlaying">Now Playing: —</div>
   <div class="controls">
-    <button class="control-btn" id="prevBtn">⏮</button>
-    <button class="control-btn" id="playBtn">▶</button>
-    <button class="control-btn" id="nextBtn">⏭</button>
+
+    <!-- PREV -->
+    <button class="control-btn" id="prevBtn">
+      <svg viewBox="0 0 24 24">
+        <line x1="19" y1="5" x2="19" y2="19"/>
+        <polyline points="15 18 6 12 15 6"/>
+      </svg>
+    </button>
+
+    <!-- PLAY -->
+    <button class="control-btn" id="playBtn">
+      <svg id="playIcon" viewBox="0 0 24 24">
+        <polygon points="6 4 20 12 6 20 6 4"/>
+      </svg>
+    </button>
+
+    <!-- NEXT -->
+    <button class="control-btn" id="nextBtn">
+      <svg viewBox="0 0 24 24">
+        <line x1="5" y1="5" x2="5" y2="19"/>
+        <polyline points="9 6 18 12 9 18"/>
+      </svg>
+    </button>
+
+    <!-- SHUFFLE -->
+    <button class="control-btn" id="shuffleBtn">
+      <svg viewBox="0 0 24 24">
+        <polyline points="16 3 21 3 21 8"/>
+        <line x1="4" y1="20" x2="21" y2="3"/>
+        <polyline points="21 16 21 21 16 21"/>
+        <line x1="15" y1="15" x2="21" y2="21"/>
+        <line x1="4" y1="4" x2="9" y2="9"/>
+      </svg>
+    </button>
+
     <div class="progress-container" id="progressContainer">
       <div class="progress" id="progress"></div>
     </div>
+
     <div class="time" id="timeDisplay">0:00 / 0:00</div>
   </div>
 </div>
 
-<script type="module">
-import { doc, setDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const db = window.db;
+<script>
 const audio = new Audio();
 
 const playlistDiv = document.getElementById("playlist");
 const progress = document.getElementById("progress");
 const timeDisplay = document.getElementById("timeDisplay");
 const nowPlaying = document.getElementById("nowPlaying");
+
 const playBtn = document.getElementById("playBtn");
+const playIcon = document.getElementById("playIcon");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
+const shuffleBtn = document.getElementById("shuffleBtn");
 const progressContainer = document.getElementById("progressContainer");
 
-prevBtn.onclick = prevSong;
-nextBtn.onclick = nextSong;
-playBtn.onclick = togglePlay;
-progressContainer.onclick = seek;
-
-/* Fade in sections */
-const aboutSections = document.querySelectorAll(".about-section");
-window.addEventListener("scroll", () => {
-  aboutSections.forEach(section => {
-    const rect = section.getBoundingClientRect();
-    if (rect.top < window.innerHeight - 100) {
-      section.classList.add("visible");
-    }
-  });
-});
-
-/* Player */
+let shuffleMode = false;
 let songs = [];
 let currentIndex = 0;
-let hasCountedPlay = false;
+
+shuffleBtn.onclick = () => {
+  shuffleMode = !shuffleMode;
+  shuffleBtn.classList.toggle("active", shuffleMode);
+};
+
+prevBtn.onclick = () => {
+  currentIndex = (currentIndex - 1 + songs.length) % songs.length;
+  loadSong(currentIndex, true);
+};
+
+nextBtn.onclick = nextSong;
+
+playBtn.onclick = () => {
+  audio.paused ? audio.play() : audio.pause();
+};
+
+progressContainer.onclick = (e) => {
+  const width = e.currentTarget.clientWidth;
+  const clickX = e.offsetX;
+  audio.currentTime = (clickX / width) * audio.duration;
+};
+
+audio.addEventListener("ended", nextSong);
+
+function nextSong() {
+  if (shuffleMode) {
+    let newIndex;
+    do {
+      newIndex = Math.floor(Math.random() * songs.length);
+    } while (newIndex === currentIndex && songs.length > 1);
+    currentIndex = newIndex;
+  } else {
+    currentIndex = (currentIndex + 1) % songs.length;
+  }
+  loadSong(currentIndex, true);
+}
 
 fetch("music/songs.json")
   .then(res => res.json())
@@ -306,75 +280,39 @@ fetch("music/songs.json")
     loadSong(0, false);
   });
 
-async function buildPlaylist() {
+function buildPlaylist() {
   playlistDiv.innerHTML = "";
-
   songs.forEach((song, i) => {
-    const songId = song.file.replace(/\W/g, "_");
-    const songRef = doc(db, "plays", songId);
-
     const songDiv = document.createElement("div");
     songDiv.classList.add("song");
-
     songDiv.innerHTML = `
       <img src="${song.image}">
-      <div class="song-info">
-        <div>${song.title}</div>
-        <div class="play-count" id="plays-${i}">0 plays</div>
-      </div>
-      <a class="download" href="${song.file}" download>Download</a>
+      <div class="song-info">${song.title}</div>
     `;
-
     songDiv.onclick = () => loadSong(i, true);
     playlistDiv.appendChild(songDiv);
-
-    onSnapshot(songRef, (docSnap) => {
-      const count = docSnap.exists() ? docSnap.data().count : 0;
-      document.getElementById(`plays-${i}`).textContent = count + " plays";
-    });
   });
-}
-
-async function incrementPlay() {
-  const song = songs[currentIndex];
-  const songId = song.file.replace(/\W/g, "_");
-  const songRef = doc(db, "plays", songId);
-  await setDoc(songRef, { count: increment(1) }, { merge: true });
 }
 
 function loadSong(index, autoPlay = true) {
   currentIndex = index;
   audio.src = songs[index].file;
   nowPlaying.textContent = "Now Playing: " + songs[index].title;
-  hasCountedPlay = false;
   highlightSong();
   if (autoPlay) audio.play();
 }
 
-function togglePlay() {
-  audio.paused ? audio.play() : audio.pause();
-}
-
-function prevSong() {
-  currentIndex = (currentIndex - 1 + songs.length) % songs.length;
-  loadSong(currentIndex, true);
-}
-
-function nextSong() {
-  currentIndex = (currentIndex + 1) % songs.length;
-  loadSong(currentIndex, true);
-}
-
 audio.addEventListener("play", () => {
-  playBtn.textContent = "⏸";
-  if (!hasCountedPlay) {
-    incrementPlay();
-    hasCountedPlay = true;
-  }
+  playIcon.innerHTML = `
+    <line x1="8" y1="5" x2="8" y2="19"/>
+    <line x1="16" y1="5" x2="16" y2="19"/>
+  `;
 });
 
 audio.addEventListener("pause", () => {
-  playBtn.textContent = "▶";
+  playIcon.innerHTML = `
+    <polygon points="6 4 20 12 6 20 6 4"/>
+  `;
 });
 
 audio.addEventListener("timeupdate", () => {
@@ -385,17 +323,11 @@ audio.addEventListener("timeupdate", () => {
     formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
 });
 
-function seek(e) {
-  const width = e.currentTarget.clientWidth;
-  const clickX = e.offsetX;
-  audio.currentTime = (clickX / width) * audio.duration;
-}
-
 function formatTime(seconds) {
   if (!seconds) return "0:00";
-  const minutes = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return minutes + ":" + (secs < 10 ? "0" : "") + secs;
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return m + ":" + (s < 10 ? "0" : "") + s;
 }
 
 function highlightSong() {
