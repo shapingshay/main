@@ -8,7 +8,7 @@
 <!-- Firebase SDK (Modular v10) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDluUOyyk1qdndO2729JiXkY_0w829ttoc",
@@ -23,7 +23,6 @@
   const db = getFirestore(app);
 
   window.db = db;
-  window.firebaseTools = { doc, getDoc, setDoc, updateDoc, increment, onSnapshot };
 </script>
 
 <style>
@@ -46,12 +45,12 @@ body {
 .overlay {
   background: rgba(0,0,0,0.75);
   min-height: 100vh;
-  padding: 30px 20px 140px 20px;
+  padding: 60px 20px 160px 20px;
 }
 
 .logo {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 60px;
 }
 
 .logo img {
@@ -59,9 +58,10 @@ body {
   width: 100%;
 }
 
+/* ✅ Playlist keeps internal scroll */
 .playlist {
   max-width: 800px;
-  margin: 0 auto;
+  margin: 0 auto 100px auto;
   max-height: 500px;
   overflow-y: auto;
   border: 1px solid purple;
@@ -95,9 +95,7 @@ body {
   font-weight: bold;
 }
 
-.song-info {
-  flex: 1;
-}
+.song-info { flex: 1; }
 
 .play-count {
   font-size: 13px;
@@ -111,6 +109,36 @@ body {
   font-size: 14px;
 }
 
+/* ✅ About Section */
+.about-section {
+  max-width: 800px;
+  margin: 0 auto 200px auto;
+  padding: 40px;
+  background: rgba(0,0,0,0.65);
+  border: 1px solid purple;
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.8s ease;
+}
+
+.about-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.about-section h2 {
+  color: #bb66ff;
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.about-section p {
+  line-height: 1.7;
+  color: #ddd;
+}
+
+/* ✅ Sticky Player */
 .sticky-player {
   position: fixed;
   bottom: 0;
@@ -151,7 +179,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
 }
 
 .control-btn:hover {
@@ -201,6 +228,22 @@ body {
   </div>
 
   <div class="playlist" id="playlist"></div>
+
+  <!-- ✅ About Section -->
+  <div class="about-section" id="aboutSection">
+    <h2>About Shaping Shay</h2>
+    <p>
+      Shaping Shay is a project built around atmosphere, emotion, and texture.
+      Each track explores a different shade of vulnerability, blending layered
+      instrumentation with cinematic space and restrained intensity. The music
+      is designed to feel immersive rather than immediate — something that
+      unfolds gradually and reveals new details with each listen. Inspired by
+      late‑night drives, dimly lit stages, and the quiet moments between chaos,
+      Shaping Shay exists in that space where reflection meets momentum. This
+      isn’t just a collection of songs, but a mood — one that invites you to
+      sit with it, feel it, and stay a little longer.
+    </p>
+  </div>
 </div>
 
 <div class="sticky-player">
@@ -232,12 +275,22 @@ const playBtn = document.getElementById("playBtn");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const progressContainer = document.getElementById("progressContainer");
+const aboutSection = document.getElementById("aboutSection");
 
 prevBtn.addEventListener("click", prevSong);
 nextBtn.addEventListener("click", nextSong);
 playBtn.addEventListener("click", togglePlay);
 progressContainer.addEventListener("click", seek);
 
+/* ✅ Fade-in About section */
+window.addEventListener("scroll", () => {
+  const rect = aboutSection.getBoundingClientRect();
+  if (rect.top < window.innerHeight - 100) {
+    aboutSection.classList.add("visible");
+  }
+});
+
+/* --- Player Logic --- */
 let songs = [];
 let currentIndex = 0;
 let hasCountedPlay = false;
