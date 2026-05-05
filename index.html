@@ -357,8 +357,42 @@ async function incrementPlay(index) {
 function loadSong(index, autoPlay=true) {
   currentIndex = index;
   audio.src = songs[index].file;
+
   document.getElementById("nowPlaying").textContent =
     "Now Playing: " + songs[index].title;
+
+  // ✅ Media Session API
+  if ('mediaSession' in navigator) {
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: songs[index].title,
+      artist: "Shaping Shay",
+      album: "Shaping Shay",
+      artwork: [
+        {
+          src: songs[index].image,
+          sizes: "512x512",
+          type: "image/png"
+        }
+      ]
+    });
+
+    navigator.mediaSession.setActionHandler('play', () => {
+      audio.play();
+    });
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      audio.pause();
+    });
+
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      document.getElementById("prevBtn").click();
+    });
+
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      document.getElementById("nextBtn").click();
+    });
+  }
 
   if (autoPlay) {
     incrementPlay(index);
