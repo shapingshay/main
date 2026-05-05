@@ -38,5 +38,90 @@
     "file": "autumnveins.mp3",
     "title": "Autumn Veins",
     "image": "images/500.png"
+  },
+    {
+    "file": "matterdontmind.mp3",
+    "title": "Matter Don't Mind",
+    "image": "images/500.png"
+  },
+    {
+    "file": "fivehundredtonone.mp3",
+    "title": "Five Hundred To None",
+    "image": "images/500.png"
+  },
+    {
+    "file": "blurattheedges.mp3",
+    "title": "Blur At The Edges",
+    "image": "images/500.png"
+  },
+    {
+    "file": "beforeidisappeared.mp3",
+    "title": "Before I Disappeared",
+    "image": "images/500.png"
+  },
+    {
+    "file": "rightbesideyou.mp3",
+    "title": "Right Beside You",
+    "image": "images/500.png"
+  },
+    {
+    "file": "earnit.mp3",
+    "title": "Earn It",
+    "image": "images/500.png"
+  },
+    {
+    "file": "home.mp3",
+    "title": "Home",
+    "image": "images/500.png"
+  },
+    {
+    "file": "lyingintheafterglow.mp3",
+    "title": "Lying In The Afterglow",
+    "image": "images/500.png"
+  },
+    {
+    "file": "howabout.mp3",
+    "title": "How About...",
+    "image": "images/500.png"
+  },
+    {
+    "file": "sertralinesmile.mp3",
+    "title": "Sertraline Smile",
+    "image": "images/500.png"
+  },
+    {
+    "file": "impostersyndrome.mp3",
+    "title": "Imposter Syndrome",
+    "image": "images/500.png"
+  },
+    {
+    "file": "iknowwhatyouwant.mp3",
+    "title": "I Know What You Want",
+    "image": "images/500.png"
+  },
+    {
+    "file": "couldshouldwould.mp3",
+    "title": "Could, Should, Would",
+    "image": "images/500.png"
+  },
+    {
+    "file": "rightbesideyoulive.mp3",
+    "title": "Right Beside You - Live",
+    "image": "images/live.png"
+  },
+    {
+    "file": "impostersyndromelive.mp3",
+    "title": "Imposter Syndrome - Live",
+    "image": "images/live.png"
+  },
+    {
+    "file": "fivehundredtononelive.mp3",
+    "title": "Five Hundred to None - Live",
+    "image": "images/live.png"
+  },
+    {
+    "file": "howaboutlive.mp3",
+    "title": "How About... - Live",
+    "image": "images/live.png"
   }
 ]
