@@ -37,7 +37,7 @@ body {
 
 /* Playlist */
 .playlist {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto 100px auto;
   max-height: 500px;
   overflow-y: auto;
@@ -72,7 +72,58 @@ body {
   font-weight: bold;
 }
 
-.song-info { flex: 1; }
+.song-info {
+  flex: 1;
+}
+
+.song-meta {
+  font-size: 13px;
+  color: #bbb;
+  margin-top: 4px;
+}
+
+.download-btn {
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid #bb66ff;
+  color: #bb66ff;
+  cursor: pointer;
+  font-size: 12px;
+  transition: 0.2s;
+}
+
+.download-btn:hover {
+  background: #bb66ff;
+  color: black;
+}
+
+/* About Sections */
+.about-section {
+  max-width: 900px;
+  margin: 0 auto 120px auto;
+  padding: 40px;
+  background: rgba(0,0,0,0.65);
+  border: 1px solid purple;
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.8s ease;
+}
+
+.about-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.about-section h2 {
+  color: #bb66ff;
+  margin-top: 0;
+}
+
+.about-section p {
+  line-height: 1.7;
+  color: #ddd;
+}
 
 /* Sticky Player */
 .sticky-player {
@@ -163,14 +214,31 @@ body {
   <div class="logo">
     <img src="images/logo.png" alt="Band Logo">
   </div>
+
   <div class="playlist" id="playlist"></div>
+
+  <div class="about-section">
+    <h2>About Shaping Shay</h2>
+    <p>
+      Shaping Shay lives at the intersection of atmosphere and emotion —
+      cinematic textures layered with lived experience.
+    </p>
+  </div>
+
+  <div class="about-section">
+    <h2>About Shay Herself</h2>
+    <p>
+      Shay is the feminine persona of an AMAB individual, unlocked during
+      a gender identity journey. These songs are part of that unfolding —
+      reflection, memory, and becoming.
+    </p>
+  </div>
 </div>
 
 <div class="sticky-player">
   <div class="now-playing" id="nowPlaying">Now Playing: —</div>
   <div class="controls">
 
-    <!-- PREV -->
     <button class="control-btn" id="prevBtn">
       <svg viewBox="0 0 24 24">
         <line x1="19" y1="5" x2="19" y2="19"/>
@@ -178,14 +246,12 @@ body {
       </svg>
     </button>
 
-    <!-- PLAY -->
     <button class="control-btn" id="playBtn">
       <svg id="playIcon" viewBox="0 0 24 24">
         <polygon points="6 4 20 12 6 20 6 4"/>
       </svg>
     </button>
 
-    <!-- NEXT -->
     <button class="control-btn" id="nextBtn">
       <svg viewBox="0 0 24 24">
         <line x1="5" y1="5" x2="5" y2="19"/>
@@ -193,7 +259,6 @@ body {
       </svg>
     </button>
 
-    <!-- SHUFFLE -->
     <button class="control-btn" id="shuffleBtn">
       <svg viewBox="0 0 24 24">
         <polyline points="16 3 21 3 21 8"/>
@@ -214,59 +279,25 @@ body {
 
 <script>
 const audio = new Audio();
-
 const playlistDiv = document.getElementById("playlist");
 const progress = document.getElementById("progress");
 const timeDisplay = document.getElementById("timeDisplay");
 const nowPlaying = document.getElementById("nowPlaying");
-
-const playBtn = document.getElementById("playBtn");
 const playIcon = document.getElementById("playIcon");
-const prevBtn = document.getElementById("prevBtn");
-const nextBtn = document.getElementById("nextBtn");
-const shuffleBtn = document.getElementById("shuffleBtn");
-const progressContainer = document.getElementById("progressContainer");
 
 let shuffleMode = false;
 let songs = [];
 let currentIndex = 0;
 
-shuffleBtn.onclick = () => {
-  shuffleMode = !shuffleMode;
-  shuffleBtn.classList.toggle("active", shuffleMode);
-};
+/* Fade-in About Sections */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add("visible");
+  });
+}, { threshold: 0.2 });
 
-prevBtn.onclick = () => {
-  currentIndex = (currentIndex - 1 + songs.length) % songs.length;
-  loadSong(currentIndex, true);
-};
-
-nextBtn.onclick = nextSong;
-
-playBtn.onclick = () => {
-  audio.paused ? audio.play() : audio.pause();
-};
-
-progressContainer.onclick = (e) => {
-  const width = e.currentTarget.clientWidth;
-  const clickX = e.offsetX;
-  audio.currentTime = (clickX / width) * audio.duration;
-};
-
-audio.addEventListener("ended", nextSong);
-
-function nextSong() {
-  if (shuffleMode) {
-    let newIndex;
-    do {
-      newIndex = Math.floor(Math.random() * songs.length);
-    } while (newIndex === currentIndex && songs.length > 1);
-    currentIndex = newIndex;
-  } else {
-    currentIndex = (currentIndex + 1) % songs.length;
-  }
-  loadSong(currentIndex, true);
-}
+document.querySelectorAll(".about-section")
+  .forEach(section => observer.observe(section));
 
 fetch("music/songs.json")
   .then(res => res.json())
@@ -274,7 +305,8 @@ fetch("music/songs.json")
     songs = data.map(song => ({
       file: "music/" + song.file,
       title: song.title,
-      image: song.image
+      image: song.image,
+      plays: song.plays || 0
     }));
     buildPlaylist();
     loadSong(0, false);
@@ -287,11 +319,24 @@ function buildPlaylist() {
     songDiv.classList.add("song");
     songDiv.innerHTML = `
       <img src="${song.image}">
-      <div class="song-info">${song.title}</div>
+      <div class="song-info">
+        <div>${song.title}</div>
+        <div class="song-meta">${song.plays} plays</div>
+      </div>
+      <button class="download-btn" onclick="event.stopPropagation(); downloadSong(${i})">
+        Download
+      </button>
     `;
     songDiv.onclick = () => loadSong(i, true);
     playlistDiv.appendChild(songDiv);
   });
+}
+
+function downloadSong(i) {
+  const link = document.createElement("a");
+  link.href = songs[i].file;
+  link.download = songs[i].title;
+  link.click();
 }
 
 function loadSong(index, autoPlay = true) {
@@ -300,34 +345,6 @@ function loadSong(index, autoPlay = true) {
   nowPlaying.textContent = "Now Playing: " + songs[index].title;
   highlightSong();
   if (autoPlay) audio.play();
-}
-
-audio.addEventListener("play", () => {
-  playIcon.innerHTML = `
-    <line x1="8" y1="5" x2="8" y2="19"/>
-    <line x1="16" y1="5" x2="16" y2="19"/>
-  `;
-});
-
-audio.addEventListener("pause", () => {
-  playIcon.innerHTML = `
-    <polygon points="6 4 20 12 6 20 6 4"/>
-  `;
-});
-
-audio.addEventListener("timeupdate", () => {
-  if (!audio.duration) return;
-  const percent = (audio.currentTime / audio.duration) * 100;
-  progress.style.width = percent + "%";
-  timeDisplay.textContent =
-    formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
-});
-
-function formatTime(seconds) {
-  if (!seconds) return "0:00";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return m + ":" + (s < 10 ? "0" : "") + s;
 }
 
 function highlightSong() {
