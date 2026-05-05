@@ -13,13 +13,28 @@ body {
   font-family: Arial, sans-serif;
   color: white;
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at center, rgba(0,0,0,0.3), rgba(0,0,0,0.85)),
-    url("images/background.png") center center / cover no-repeat fixed;
+  background: url("images/background.png") center center / cover no-repeat fixed;
   background-color: black;
+  position: relative;
+}
+
+/* Full-screen vignette overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at center,
+    rgba(0,0,0,0.3) 0%,
+    rgba(0,0,0,0.85) 100%
+  );
+  z-index: 0;
 }
 
 .overlay {
+  position: relative;
+  z-index: 1;
   background: rgba(0,0,0,0.75);
   min-height: 100vh;
   padding: 60px 20px 160px 20px;
