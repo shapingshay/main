@@ -134,6 +134,7 @@ body {
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, purple, #bb66ff);
+  transition: width 0.1s linear;
 }
 
 .time {
@@ -160,7 +161,7 @@ body {
 
   <div style="max-width:900px;margin:0 auto 120px auto;padding:40px;background:rgba(0,0,0,0.65);border:1px solid purple;">
     <h2 style="color:#bb66ff;">About Shay Herself</h2>
-    <p>Sample placeholder biography content. This will be replaced with the finalized approved narrative.</p>
+    <p>Sample placeholder biography content. This will be replaced with finalized approved narrative.</p>
   </div>
 </div>
 
@@ -176,7 +177,7 @@ body {
     </button>
 
     <button class="control-btn" id="playBtn">
-      <svg id="playIcon" viewBox="0 0 24 24">
+      <svg viewBox="0 0 24 24">
         <polygon points="6 4 20 12 6 20 6 4"/>
       </svg>
     </button>
@@ -224,6 +225,33 @@ const audio = new Audio();
 let songs = [];
 let currentIndex = 0;
 let shuffleMode = false;
+
+const progress = document.getElementById("progress");
+const progressContainer = document.getElementById("progressContainer");
+const timeDisplay = document.getElementById("timeDisplay");
+
+function formatTime(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return minutes + ":" + (secs < 10 ? "0" + secs : secs);
+}
+
+audio.addEventListener("timeupdate", () => {
+  if (audio.duration) {
+    const percent = (audio.currentTime / audio.duration) * 100;
+    progress.style.width = percent + "%";
+    timeDisplay.textContent =
+      formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
+  }
+});
+
+progressContainer.addEventListener("click", (e) => {
+  const width = progressContainer.clientWidth;
+  const clickX = e.offsetX;
+  if (audio.duration) {
+    audio.currentTime = (clickX / width) * audio.duration;
+  }
+});
 
 fetch("music/songs.json")
 .then(res => res.json())
