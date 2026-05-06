@@ -427,7 +427,9 @@ if (audio.duration) {
 
 const percent = (audio.currentTime / audio.duration) * 100;
 
-progress.style.width = percent + "%";
+if (!isScrubbing) {
+  progress.style.width = percent + "%";
+}
 
 timeDisplay.textContent =
 
@@ -437,18 +439,59 @@ formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
 
 });
 
-progressContainer.addEventListener("click", (e) => {
+  let isScrubbing = false;
+let scrubPercent = 0;
 
-const width = progressContainer.clientWidth;
-
-const clickX = e.offsetX;
-
-if (audio.duration) {
-
-audio.currentTime = (clickX / width) * audio.duration;
-
+// Helper to get percent based on mouse/touch position
+function getScrubPercent(clientX) {
+  const rect = progressContainer.getBoundingClientRect();
+  const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+  return x / rect.width;
 }
 
+// Mouse Down
+progressContainer.addEventListener("mousedown", (e) => {
+  isScrubbing = true;
+  scrubPercent = getScrubPercent(e.clientX);
+  progress.style.width = (scrubPercent * 100) + "%";
+});
+
+// Mouse Move
+window.addEventListener("mousemove", (e) => {
+  if (!isScrubbing) return;
+  scrubPercent = getScrubPercent(e.clientX);
+  progress.style.width = (scrubPercent * 100) + "%";
+});
+
+// Mouse Up (✅ Apply audio position here)
+window.addEventListener("mouseup", () => {
+  if (!isScrubbing) return;
+  isScrubbing = false;
+  if (audio.duration) {
+    audio.currentTime = scrubPercent * audio.duration;
+  }
+});
+
+// ✅ Touch Support
+
+progressContainer.addEventListener("touchstart", (e) => {
+  isScrubbing = true;
+  scrubPercent = getScrubPercent(e.touches[0].clientX);
+  progress.style.width = (scrubPercent * 100) + "%";
+});
+
+window.addEventListener("touchmove", (e) => {
+  if (!isScrubbing) return;
+  scrubPercent = getScrubPercent(e.touches[0].clientX);
+  progress.style.width = (scrubPercent * 100) + "%";
+});
+
+window.addEventListener("touchend", () => {
+  if (!isScrubbing) return;
+  isScrubbing = false;
+  if (audio.duration) {
+    audio.currentTime = scrubPercent * audio.duration;
+  }
 });
 
 fetch("music/songs.json")
