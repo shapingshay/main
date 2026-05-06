@@ -285,7 +285,27 @@ playBtn.onclick = () => {
 
 audio.addEventListener("play", () => setPlayIcon(true));
 audio.addEventListener("pause", () => setPlayIcon(false));
-audio.addEventListener("ended", () => setPlayIcon(false));
+audio.addEventListener("ended", () => {
+
+  let nextIndex;
+
+  if (shuffleMode) {
+
+    if (songs.length <= 1) return;
+
+    do {
+      nextIndex = Math.floor(Math.random() * songs.length);
+    } while (nextIndex === currentIndex);
+
+  } else {
+
+    nextIndex = (currentIndex + 1) % songs.length;
+
+  }
+
+  loadSong(nextIndex, true);
+
+});
 
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
