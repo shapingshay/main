@@ -37,7 +37,7 @@ body {
   max-width: 320px;
   width: 100%;
 }
-  
+
 .about-image {
   width: 75%;
   max-width: 75%;
@@ -45,7 +45,7 @@ body {
   display: block;
   margin: 20px auto;
 }
-  
+
 .playlist {
   max-width: 900px;
   margin: 0 auto 100px auto;
@@ -65,9 +65,7 @@ body {
   transition: background 0.2s;
 }
 
-.song:hover { 
-  background: rgba(128,0,128,0.4); 
-}
+.song:hover { background: rgba(128,0,128,0.4); }
 
 .song img {
   width: 55px;
@@ -76,9 +74,7 @@ body {
   border: 1px solid purple;
 }
 
-.song-info { 
-  flex: 1; 
-}
+.song-info { flex: 1; }
 
 .song-meta {
   font-size: 13px;
@@ -90,7 +86,7 @@ body {
   background: rgba(187, 102, 255, 0.18);
   border-left: 4px solid #bb66ff;
 }
-  
+
 .download-btn {
   padding: 6px 10px;
   background: transparent;
@@ -114,7 +110,7 @@ body {
   margin: 0 auto;
 }
 
-/* ✅ Now Playing + Time Row */
+/* ✅ Now Playing row */
 .now-row {
   display: flex;
   justify-content: space-between;
@@ -128,11 +124,18 @@ body {
 
 .time {
   font-size: 14px;
-  text-align: right;
   min-width: 110px;
+  text-align: right;
 }
 
-/* ✅ Controls */
+/* ✅ Controls wrapper */
+.controls-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ✅ Controls row */
 .controls-row {
   display: flex;
   justify-content: center;
@@ -141,6 +144,7 @@ body {
   margin-bottom: 12px;
 }
 
+/* ✅ Buttons */
 .control-btn {
   border: 2px solid purple;
   background: #000;
@@ -173,14 +177,22 @@ body {
   stroke-linejoin: round;
 }
 
-/* ✅ Progress Bar (exact width of 4 buttons including gaps) */
+/* ✅ Progress wrapper */
 .progress-wrapper {
+  width: 100%;
   display: flex;
   justify-content: center;
 }
 
+/* ✅ This now matches control row width automatically */
+.controls-row,
 .progress-container {
-  width: calc((55px * 4) + (20px * 3));
+  max-width: max-content;
+}
+
+/* ✅ Progress */
+.progress-container {
+  width: 100%;
   height: 18px;
   background: #222;
   cursor: pointer;
@@ -239,7 +251,9 @@ For anyone who has ever felt slightly misread by the world, slightly out of step
       Now Playing: —
     </div>
 
-    <div class="controls-row">
+<div class="controls-wrapper">
+
+  <div class="controls-row">
       <button class="control-btn" id="prevBtn">
         <svg viewBox="0 0 24 24">
           <line x1="19" y1="5" x2="19" y2="19"/>
@@ -270,7 +284,11 @@ For anyone who has ever felt slightly misread by the world, slightly out of step
         </svg>
       </button>
     </div>
+</div>
 
+
+
+  <div class="progress-wrapper">
     <div class="progress-row">
       <div class="progress-container" id="progressContainer">
         <div class="progress" id="progress"></div>
@@ -278,7 +296,7 @@ For anyone who has ever felt slightly misread by the world, slightly out of step
 
       <div class="time" id="timeDisplay">0:00 / 0:00</div>
     </div>
-
+  </div>
   </div>
 </div>
 <script type="module">
