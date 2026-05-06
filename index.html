@@ -128,12 +128,6 @@ body {
   text-align: right;
 }
 
-/* ✅ Controls wrapper */
-.controls-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
 
 /* ✅ Controls row */
 .controls-row {
@@ -177,20 +171,39 @@ body {
   stroke-linejoin: round;
 }
 
-/* ✅ Progress wrapper */
-.progress-wrapper {
-  width: 100%;
+.player-inner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ✅ Now Playing Row */
+.now-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+#nowPlaying {
+  font-size: 15px;
+}
+
+.time {
+  font-size: 14px;
+  min-width: 110px;
+  text-align: right;
+}
+
+/* ✅ Controls centered */
+.controls-row {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 25px;
+  margin-bottom: 15px;
 }
 
-/* ✅ This now matches control row width automatically */
-.controls-row,
-.progress-container {
-  max-width: max-content;
-}
-
-/* ✅ Progress */
+/* ✅ Full width progress */
 .progress-container {
   width: 100%;
   height: 18px;
@@ -205,6 +218,7 @@ body {
   background: linear-gradient(90deg, purple, #bb66ff);
   transition: width 0.1s linear;
 }
+
 
 @media (max-width: 600px) {
   .progress-container {
@@ -247,13 +261,14 @@ For anyone who has ever felt slightly misread by the world, slightly out of step
 <div class="sticky-player">
   <div class="player-inner">
 
-    <div id="nowPlaying" style="margin-bottom:12px;">
-      Now Playing: —
+    <!-- ✅ Top Row -->
+    <div class="now-row">
+      <div id="nowPlaying">Now Playing: —</div>
+      <div class="time" id="timeDisplay">0:00 / 0:00</div>
     </div>
 
-<div class="controls-wrapper">
-
-  <div class="controls-row">
+    <!-- ✅ Buttons Row -->
+    <div class="controls-row">
       <button class="control-btn" id="prevBtn">
         <svg viewBox="0 0 24 24">
           <line x1="19" y1="5" x2="19" y2="19"/>
@@ -263,7 +278,7 @@ For anyone who has ever felt slightly misread by the world, slightly out of step
 
       <button class="control-btn" id="playBtn">
         <svg id="playIcon" viewBox="0 0 24 24">
-          <polygon id="playShape" points="6 4 20 12 6 20 6 4"/>
+          <polygon points="6 4 20 12 6 20 6 4"/>
         </svg>
       </button>
 
@@ -284,19 +299,12 @@ For anyone who has ever felt slightly misread by the world, slightly out of step
         </svg>
       </button>
     </div>
-</div>
 
-
-
-  <div class="progress-wrapper">
-    <div class="progress-row">
-      <div class="progress-container" id="progressContainer">
-        <div class="progress" id="progress"></div>
-      </div>
-
-      <div class="time" id="timeDisplay">0:00 / 0:00</div>
+    <!-- ✅ Progress Bar Full Width -->
+    <div class="progress-container" id="progressContainer">
+      <div class="progress" id="progress"></div>
     </div>
-  </div>
+
   </div>
 </div>
 <script type="module">
