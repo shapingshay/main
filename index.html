@@ -62,9 +62,9 @@ body::after {
   background:
     radial-gradient(
       circle at center,
-      rgba(0, 0, 0, 0.18) 0%,
-      rgba(0, 0, 0, 0.35) 55%,
-      rgba(0, 0, 0, 0.72) 100%
+      rgba(0, 0, 0, 0.25) 0%,
+      rgba(0, 0, 0, 0.48) 55%,
+      rgba(0, 0, 0, 0.85) 100%
     );
 }
   a {
@@ -768,7 +768,13 @@ body::after {
   let songs = [];
 
   document.addEventListener("DOMContentLoaded", function () {
-    const audio = document.getElementById("audio");
+    /*
+      Important:
+      This intentionally uses the same pattern from your older working file:
+      a single persistent JavaScript-created Audio object.
+    */
+    const audio = new Audio();
+
     const nowPlaying = document.getElementById("nowPlaying");
     const shuffleButton = document.getElementById("shuffleButton");
     const eqButton = document.getElementById("eqButton");
@@ -795,6 +801,9 @@ body::after {
     let sourceNode = null;
     let eqFilters = [];
     let eqInitialized = false;
+
+    audio.preload = "metadata";
+    audio.setAttribute("playsinline", "");
 
     const eqSettings = [
       {
@@ -824,19 +833,6 @@ body::after {
       }
     ];
 
-    /*
-      Mobile/background playback notes:
-      - This script keeps one persistent <audio id="audio"> element.
-      - It does not pause on visibilitychange, blur, or pagehide.
-      - Media Session support is added for lock-screen metadata and controls.
-      - Playback still must be started by a user gesture on most mobile browsers.
-    */
-
-    if (audio) {
-      audio.preload = "metadata";
-      audio.setAttribute("playsinline", "");
-    }
-
     function formatTime(seconds) {
       if (!Number.isFinite(seconds) || seconds < 0) {
         return "0:00";
@@ -856,7 +852,7 @@ body::after {
         .replaceAll("'", "&#039;");
     }
 
-    function isAbsoluteUrl(value) {
+    function isAbsolutePath(value) {
       return (
         value.startsWith("http://") ||
         value.startsWith("https://") ||
@@ -864,12 +860,12 @@ body::after {
       );
     }
 
-    function normalizeAssetPath(value) {
+    function withMusicBasePath(value) {
       if (!value) {
         return "";
       }
 
-      return isAbsoluteUrl(value) ? value : MUSIC_BASE_PATH + value;
+      return isAbsolutePath(value) ? value : MUSIC_BASE_PATH + value;
     }
 
     function normalizeSong(rawSong) {
@@ -882,158 +878,10 @@ body::after {
         title: title,
         image: image,
         artist: rawSong.artist || "Shaping Shay",
-        album: rawSong.album || "",
-        src: isAbsoluteUrl(file) ? file : MUSIC_BASE_PATH + file,
-        artworkSrc: normalizeAssetPath(image)
+        album: rawSong.album || "Shaping Shay",
+        src: withMusicBasePath(file),
+        artworkSrc: withMusicBasePath(image)
       };
-    }
-
-    function getCurrentSong() {
-      return songs[currentIndex] || null;
-    }
-
-    function getArtworkArray(song) {
-      if (!song || !song.artworkSrc) {
-        return [];
-      }
-
-      const type = song.artworkSrc.toLowerCase().endsWith(".jpg") ||
-        song.artworkSrc.toLowerCase().endsWith(".jpeg")
-        ? "image/jpeg"
-        : "image/png";
-
-      return [
-        {
-          src: song.artworkSrc,
-          sizes: "512x512",
-          type: type
-        }
-      ];
-    }
-
-    function mediaSessionSupported() {
-      return "mediaSession" in navigator;
-    }
-
-    function updateMediaSession(song) {
-      if (!mediaSessionSupported() || !song) {
-        return;
-      }
-
-      try {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: song.title || "Unknown Track",
-          artist: song.artist || "Unknown Artist",
-          album: song.album || "",
-          artwork: getArtworkArray(song)
-        });
-      } catch (error) {
-        console.warn("Could not update Media Session metadata:", error);
-      }
-
-      try {
-        navigator.mediaSession.setActionHandler("play", function () {
-          safePlay();
-        });
-
-        navigator.mediaSession.setActionHandler("pause", function () {
-          audio.pause();
-        });
-
-        navigator.mediaSession.setActionHandler("previoustrack", function () {
-          playPrevious();
-        });
-
-        navigator.mediaSession.setActionHandler("nexttrack", function () {
-          playNext();
-        });
-
-        navigator.mediaSession.setActionHandler("seekbackward", function (details) {
-          const seekOffset = details.seekOffset || 10;
-          audio.currentTime = Math.max(audio.currentTime - seekOffset, 0);
-          updateMediaPosition();
-        });
-
-        navigator.mediaSession.setActionHandler("seekforward", function (details) {
-          const seekOffset = details.seekOffset || 10;
-
-          if (Number.isFinite(audio.duration)) {
-            audio.currentTime = Math.min(audio.currentTime + seekOffset, audio.duration);
-          } else {
-            audio.currentTime = audio.currentTime + seekOffset;
-          }
-
-          updateMediaPosition();
-        });
-
-        navigator.mediaSession.setActionHandler("seekto", function (details) {
-          if (details.fastSeek && "fastSeek" in audio) {
-            audio.fastSeek(details.seekTime);
-          } else {
-            audio.currentTime = details.seekTime;
-          }
-
-          updateMediaPosition();
-        });
-      } catch (error) {
-        console.warn("Could not set one or more Media Session action handlers:", error);
-      }
-
-      updateMediaPlaybackState();
-      updateMediaPosition();
-    }
-
-    function updateMediaPlaybackState() {
-      if (!mediaSessionSupported()) {
-        return;
-      }
-
-      try {
-        navigator.mediaSession.playbackState = audio.paused ? "paused" : "playing";
-      } catch (error) {
-        console.warn("Could not update Media Session playback state:", error);
-      }
-    }
-
-    function updateMediaPosition() {
-      if (!mediaSessionSupported()) {
-        return;
-      }
-
-      if (!Number.isFinite(audio.duration) || audio.duration <= 0) {
-        return;
-      }
-
-      if (typeof navigator.mediaSession.setPositionState !== "function") {
-        return;
-      }
-
-      try {
-        navigator.mediaSession.setPositionState({
-          duration: audio.duration,
-          playbackRate: audio.playbackRate || 1,
-          position: Math.min(Math.max(audio.currentTime, 0), audio.duration)
-        });
-      } catch (error) {
-        /*
-          Some browsers are picky here, especially if metadata/duration
-          is not fully ready yet.
-        */
-      }
-    }
-
-    function safePlay() {
-      initializeEqualizer();
-
-      const playPromise = audio.play();
-
-      if (playPromise && typeof playPromise.catch === "function") {
-        playPromise.catch(function (error) {
-          console.warn("Playback could not start:", error);
-        });
-      }
-
-      return playPromise;
     }
 
     async function loadSongsFromJson() {
@@ -1084,8 +932,9 @@ body::after {
 
       songList.innerHTML = songs.map(function (song, index) {
         const number = String(index + 1).padStart(2, "0");
+
         const imageHtml = song.image
-          ? '<img class="song-cover" src="' + escapeHtml(song.image) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\';" />'
+          ? '<img class="song-cover" src="' + escapeHtml(song.artworkSrc || song.image) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\';" />'
           : '<div class="song-cover" aria-hidden="true"></div>';
 
         return (
@@ -1182,6 +1031,7 @@ body::after {
             console.warn("Could not resume AudioContext:", error);
           });
         }
+
         return;
       }
 
@@ -1194,6 +1044,11 @@ body::after {
 
       try {
         audioContext = new AudioContextClass();
+
+        /*
+          This is now attached to the JavaScript-created Audio object,
+          matching the working older player architecture.
+        */
         sourceNode = audioContext.createMediaElementSource(audio);
 
         eqFilters = eqSettings.map(function (setting) {
@@ -1253,6 +1108,153 @@ body::after {
       return nextIndex;
     }
 
+    function getArtworkType(src) {
+      const lower = String(src || "").toLowerCase();
+
+      if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+        return "image/jpeg";
+      }
+
+      if (lower.endsWith(".webp")) {
+        return "image/webp";
+      }
+
+      return "image/png";
+    }
+
+    function updateMediaSession(song) {
+      if (!("mediaSession" in navigator) || !song) {
+        return;
+      }
+
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: song.title,
+          artist: song.artist || "Shaping Shay",
+          album: song.album || "Shaping Shay",
+          artwork: song.artworkSrc
+            ? [
+                {
+                  src: song.artworkSrc,
+                  sizes: "512x512",
+                  type: getArtworkType(song.artworkSrc)
+                }
+              ]
+            : []
+        });
+      } catch (error) {
+        console.warn("Could not set Media Session metadata:", error);
+      }
+
+      try {
+        navigator.mediaSession.setActionHandler("play", function () {
+          safePlay();
+        });
+
+        navigator.mediaSession.setActionHandler("pause", function () {
+          audio.pause();
+        });
+
+        navigator.mediaSession.setActionHandler("previoustrack", function () {
+          playPrevious();
+        });
+
+        navigator.mediaSession.setActionHandler("nexttrack", function () {
+          playNext();
+        });
+
+        navigator.mediaSession.setActionHandler("seekbackward", function (details) {
+          const offset = details.seekOffset || 10;
+          audio.currentTime = Math.max(audio.currentTime - offset, 0);
+          updateMediaPosition();
+        });
+
+        navigator.mediaSession.setActionHandler("seekforward", function (details) {
+          const offset = details.seekOffset || 10;
+
+          if (Number.isFinite(audio.duration)) {
+            audio.currentTime = Math.min(audio.currentTime + offset, audio.duration);
+          } else {
+            audio.currentTime = audio.currentTime + offset;
+          }
+
+          updateMediaPosition();
+        });
+
+        navigator.mediaSession.setActionHandler("seekto", function (details) {
+          if (typeof details.seekTime !== "number") {
+            return;
+          }
+
+          if (details.fastSeek && "fastSeek" in audio) {
+            audio.fastSeek(details.seekTime);
+          } else {
+            audio.currentTime = details.seekTime;
+          }
+
+          updateMediaPosition();
+        });
+      } catch (error) {
+        console.warn("Could not set Media Session controls:", error);
+      }
+
+      updateMediaPlaybackState();
+      updateMediaPosition();
+    }
+
+    function updateMediaPlaybackState() {
+      if (!("mediaSession" in navigator)) {
+        return;
+      }
+
+      try {
+        navigator.mediaSession.playbackState = audio.paused ? "paused" : "playing";
+      } catch (error) {
+        console.warn("Could not set Media Session playback state:", error);
+      }
+    }
+
+    function updateMediaPosition() {
+      if (!("mediaSession" in navigator)) {
+        return;
+      }
+
+      if (typeof navigator.mediaSession.setPositionState !== "function") {
+        return;
+      }
+
+      if (!Number.isFinite(audio.duration) || audio.duration <= 0) {
+        return;
+      }
+
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: audio.duration,
+          playbackRate: audio.playbackRate || 1,
+          position: Math.min(Math.max(audio.currentTime, 0), audio.duration)
+        });
+      } catch (error) {
+        /*
+          Some browsers reject position updates before metadata is stable.
+          This can be safely ignored.
+        */
+      }
+    }
+
+    function safePlay() {
+      initializeEqualizer();
+
+      const playPromise = audio.play();
+
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(function (error) {
+          console.warn("Playback could not start:", error);
+        });
+      }
+
+      return playPromise;
+    }
+
     function loadSong(index, autoplay, addToHistory) {
       if (!songs.length) {
         nowPlaying.innerHTML = "Now Playing: <strong>No songs loaded</strong>";
@@ -1274,11 +1276,6 @@ body::after {
       currentIndex = index;
       const song = songs[currentIndex];
 
-      /*
-        Important for persistence:
-        We keep the same audio element and only change src.
-        Do not replace the audio element itself.
-      */
       audio.src = song.src;
       audio.load();
       hasLoadedSong = true;
@@ -1430,10 +1427,6 @@ body::after {
       updateMediaPosition();
     });
 
-    audio.addEventListener("ratechange", function () {
-      updateMediaPosition();
-    });
-
     audio.addEventListener("timeupdate", function () {
       if (!isSeeking && Number.isFinite(audio.duration) && audio.duration > 0) {
         progress.value = String((audio.currentTime / audio.duration) * 100);
@@ -1443,10 +1436,7 @@ body::after {
       updateMediaPosition();
     });
 
-    audio.addEventListener("ended", function () {
-      updateMediaPlaybackState();
-      playNext();
-    });
+    audio.addEventListener("ended", playNext);
 
     audio.addEventListener("error", function () {
       const song = songs[currentIndex];
@@ -1478,11 +1468,6 @@ body::after {
     volume.addEventListener("input", function () {
       audio.volume = Number(volume.value);
     });
-
-    /*
-      Intentionally no visibilitychange / blur / pagehide pause handlers.
-      Removing those helps mobile browsers keep audio alive when the screen locks.
-    */
 
     nowPlaying.innerHTML = "Now Playing: <strong>—</strong>";
     updateShuffleButton();
