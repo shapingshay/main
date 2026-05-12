@@ -486,6 +486,25 @@ eqToggle?.addEventListener("click", () => {
   eqPanel.classList.toggle("active");
 });
 
+// ============================
+// CLOSE EQ WHEN CLICKING OUTSIDE
+// ============================
+
+document.addEventListener("pointerdown", (e) => {
+
+  // If panel isn't open, do nothing
+  if (!eqPanel.classList.contains("active")) return;
+
+  const clickedInsidePanel = eqPanel.contains(e.target);
+  const clickedToggle = eqToggle.contains(e.target);
+
+  // If click is outside panel and not the toggle button
+  if (!clickedInsidePanel && !clickedToggle) {
+    eqPanel.classList.remove("active");
+  }
+
+});
+  
 document.querySelectorAll(".eq-band input").forEach(slider => {
   slider.addEventListener("input", (e) => {
     const bandIndex = parseInt(e.target.dataset.band);
