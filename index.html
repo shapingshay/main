@@ -759,260 +759,440 @@ body::after {
     </div>
   </aside>
 
-  <audio id="audio" preload="metadata"></audio>
+  <audio id="audio" preload="metadata" playsinline></audio>
 
-  <script>
-    const SONGS_JSON_URL = "music/songs.json";
-    const MUSIC_BASE_PATH = "music/";
+<script>
+  const SONGS_JSON_URL = "music/songs.json";
+  const MUSIC_BASE_PATH = "music/";
 
-    let songs = [];
+  let songs = [];
 
-    document.addEventListener("DOMContentLoaded", function () {
-      const audio = document.getElementById("audio");
-      const nowPlaying = document.getElementById("nowPlaying");
-      const shuffleButton = document.getElementById("shuffleButton");
-      const eqButton = document.getElementById("eqButton");
-      const eqPanel = document.getElementById("eqPanel");
-      const eqResetButton = document.getElementById("eqResetButton");
-      const playPauseButton = document.getElementById("playPauseButton");
-      const prevButton = document.getElementById("prevButton");
-      const nextButton = document.getElementById("nextButton");
-      const progress = document.getElementById("progress");
-      const currentTimeEl = document.getElementById("currentTime");
-      const durationEl = document.getElementById("duration");
-      const volume = document.getElementById("volume");
-      const songList = document.getElementById("songList");
-      const songsCount = document.getElementById("songsCount");
-      const eqSliders = Array.from(document.querySelectorAll(".eq-slider"));
+  document.addEventListener("DOMContentLoaded", function () {
+    const audio = document.getElementById("audio");
+    const nowPlaying = document.getElementById("nowPlaying");
+    const shuffleButton = document.getElementById("shuffleButton");
+    const eqButton = document.getElementById("eqButton");
+    const eqPanel = document.getElementById("eqPanel");
+    const eqResetButton = document.getElementById("eqResetButton");
+    const playPauseButton = document.getElementById("playPauseButton");
+    const prevButton = document.getElementById("prevButton");
+    const nextButton = document.getElementById("nextButton");
+    const progress = document.getElementById("progress");
+    const currentTimeEl = document.getElementById("currentTime");
+    const durationEl = document.getElementById("duration");
+    const volume = document.getElementById("volume");
+    const songList = document.getElementById("songList");
+    const songsCount = document.getElementById("songsCount");
+    const eqSliders = Array.from(document.querySelectorAll(".eq-slider"));
 
-      let currentIndex = 0;
-      let isSeeking = false;
-      let hasLoadedSong = false;
-      let shuffleEnabled = false;
-      let shuffleHistory = [];
+    let currentIndex = 0;
+    let isSeeking = false;
+    let hasLoadedSong = false;
+    let shuffleEnabled = false;
+    let shuffleHistory = [];
 
-      let audioContext = null;
-      let sourceNode = null;
-      let eqFilters = [];
-      let eqInitialized = false;
+    let audioContext = null;
+    let sourceNode = null;
+    let eqFilters = [];
+    let eqInitialized = false;
 
-      const eqSettings = [
+    const eqSettings = [
+      {
+        frequency: 60,
+        type: "lowshelf",
+        valueEl: document.getElementById("eq60Value")
+      },
+      {
+        frequency: 250,
+        type: "peaking",
+        valueEl: document.getElementById("eq250Value")
+      },
+      {
+        frequency: 1000,
+        type: "peaking",
+        valueEl: document.getElementById("eq1000Value")
+      },
+      {
+        frequency: 4000,
+        type: "peaking",
+        valueEl: document.getElementById("eq4000Value")
+      },
+      {
+        frequency: 12000,
+        type: "highshelf",
+        valueEl: document.getElementById("eq12000Value")
+      }
+    ];
+
+    /*
+      Mobile/background playback notes:
+      - This script keeps one persistent <audio id="audio"> element.
+      - It does not pause on visibilitychange, blur, or pagehide.
+      - Media Session support is added for lock-screen metadata and controls.
+      - Playback still must be started by a user gesture on most mobile browsers.
+    */
+
+    if (audio) {
+      audio.preload = "metadata";
+      audio.setAttribute("playsinline", "");
+    }
+
+    function formatTime(seconds) {
+      if (!Number.isFinite(seconds) || seconds < 0) {
+        return "0:00";
+      }
+
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return mins + ":" + String(secs).padStart(2, "0");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function isAbsoluteUrl(value) {
+      return (
+        value.startsWith("http://") ||
+        value.startsWith("https://") ||
+        value.startsWith("/")
+      );
+    }
+
+    function normalizeAssetPath(value) {
+      if (!value) {
+        return "";
+      }
+
+      return isAbsoluteUrl(value) ? value : MUSIC_BASE_PATH + value;
+    }
+
+    function normalizeSong(rawSong) {
+      const file = rawSong.file || rawSong.src || "";
+      const title = rawSong.title || file.replace(/\.[^/.]+$/, "").replaceAll("-", " ");
+      const image = rawSong.image || rawSong.cover || "";
+
+      return {
+        file: file,
+        title: title,
+        image: image,
+        artist: rawSong.artist || "Shaping Shay",
+        album: rawSong.album || "",
+        src: isAbsoluteUrl(file) ? file : MUSIC_BASE_PATH + file,
+        artworkSrc: normalizeAssetPath(image)
+      };
+    }
+
+    function getCurrentSong() {
+      return songs[currentIndex] || null;
+    }
+
+    function getArtworkArray(song) {
+      if (!song || !song.artworkSrc) {
+        return [];
+      }
+
+      const type = song.artworkSrc.toLowerCase().endsWith(".jpg") ||
+        song.artworkSrc.toLowerCase().endsWith(".jpeg")
+        ? "image/jpeg"
+        : "image/png";
+
+      return [
         {
-          frequency: 60,
-          type: "lowshelf",
-          valueEl: document.getElementById("eq60Value")
-        },
-        {
-          frequency: 250,
-          type: "peaking",
-          valueEl: document.getElementById("eq250Value")
-        },
-        {
-          frequency: 1000,
-          type: "peaking",
-          valueEl: document.getElementById("eq1000Value")
-        },
-        {
-          frequency: 4000,
-          type: "peaking",
-          valueEl: document.getElementById("eq4000Value")
-        },
-        {
-          frequency: 12000,
-          type: "highshelf",
-          valueEl: document.getElementById("eq12000Value")
+          src: song.artworkSrc,
+          sizes: "512x512",
+          type: type
         }
       ];
+    }
 
-      function formatTime(seconds) {
-        if (!Number.isFinite(seconds) || seconds < 0) {
-          return "0:00";
-        }
+    function mediaSessionSupported() {
+      return "mediaSession" in navigator;
+    }
 
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return mins + ":" + String(secs).padStart(2, "0");
+    function updateMediaSession(song) {
+      if (!mediaSessionSupported() || !song) {
+        return;
       }
 
-      function escapeHtml(value) {
-        return String(value)
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")
-          .replaceAll('"', "&quot;")
-          .replaceAll("'", "&#039;");
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: song.title || "Unknown Track",
+          artist: song.artist || "Unknown Artist",
+          album: song.album || "",
+          artwork: getArtworkArray(song)
+        });
+      } catch (error) {
+        console.warn("Could not update Media Session metadata:", error);
       }
 
-      function normalizeSong(rawSong) {
-        const file = rawSong.file || rawSong.src || "";
-        const title = rawSong.title || file.replace(/\.[^/.]+$/, "").replaceAll("-", " ");
-        const image = rawSong.image || "";
+      try {
+        navigator.mediaSession.setActionHandler("play", function () {
+          safePlay();
+        });
 
-        return {
-          file: file,
-          title: title,
-          image: image,
-          artist: rawSong.artist || "Shaping Shay",
-          src: file.startsWith("http://") || file.startsWith("https://") || file.startsWith("/")
-            ? file
-            : MUSIC_BASE_PATH + file
-        };
-      }
+        navigator.mediaSession.setActionHandler("pause", function () {
+          audio.pause();
+        });
 
-      async function loadSongsFromJson() {
-        try {
-          const response = await fetch(SONGS_JSON_URL, {
-            cache: "no-store"
-          });
+        navigator.mediaSession.setActionHandler("previoustrack", function () {
+          playPrevious();
+        });
 
-          if (!response.ok) {
-            throw new Error("HTTP " + response.status + " while loading " + SONGS_JSON_URL);
+        navigator.mediaSession.setActionHandler("nexttrack", function () {
+          playNext();
+        });
+
+        navigator.mediaSession.setActionHandler("seekbackward", function (details) {
+          const seekOffset = details.seekOffset || 10;
+          audio.currentTime = Math.max(audio.currentTime - seekOffset, 0);
+          updateMediaPosition();
+        });
+
+        navigator.mediaSession.setActionHandler("seekforward", function (details) {
+          const seekOffset = details.seekOffset || 10;
+
+          if (Number.isFinite(audio.duration)) {
+            audio.currentTime = Math.min(audio.currentTime + seekOffset, audio.duration);
+          } else {
+            audio.currentTime = audio.currentTime + seekOffset;
           }
 
-          const data = await response.json();
+          updateMediaPosition();
+        });
 
-          if (!Array.isArray(data)) {
-            throw new Error("Expected " + SONGS_JSON_URL + " to contain a JSON array.");
+        navigator.mediaSession.setActionHandler("seekto", function (details) {
+          if (details.fastSeek && "fastSeek" in audio) {
+            audio.fastSeek(details.seekTime);
+          } else {
+            audio.currentTime = details.seekTime;
           }
 
-          songs = data.map(normalizeSong).filter(function (song) {
-            return song.file && song.title;
-          });
-
-          renderSongList();
-        } catch (error) {
-          console.error(error);
-
-          songs = [];
-
-          songList.innerHTML =
-            '<li class="song-status">' +
-            'Could not load songs from <strong>music/songs.json</strong>. ' +
-            'Please check that the file exists, contains a JSON array, and is being served by a web server.' +
-            '</li>';
-
-          songsCount.textContent = "No songs loaded";
-        }
+          updateMediaPosition();
+        });
+      } catch (error) {
+        console.warn("Could not set one or more Media Session action handlers:", error);
       }
 
-      function renderSongList() {
-        if (!songs.length) {
-          songList.innerHTML = '<li class="song-status">No songs found.</li>';
-          songsCount.textContent = "No songs loaded";
-          return;
-        }
+      updateMediaPlaybackState();
+      updateMediaPosition();
+    }
 
-        songsCount.textContent =
-          songs.length === 1 ? "1 song" : songs.length + " songs";
-
-        songList.innerHTML = songs.map(function (song, index) {
-          const number = String(index + 1).padStart(2, "0");
-          const imageHtml = song.image
-            ? '<img class="song-cover" src="' + escapeHtml(song.image) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\';" />'
-            : '<div class="song-cover" aria-hidden="true"></div>';
-
-          return (
-            '<li class="song-item" data-index="' + index + '">' +
-              '<span class="song-number">' + number + '</span>' +
-              imageHtml +
-              '<div>' +
-                '<div class="song-title">' + escapeHtml(song.title) + '</div>' +
-                '<div class="song-meta">' + escapeHtml(song.artist) + '</div>' +
-              '</div>' +
-              '<button class="play-song" type="button" data-index="' + index + '">Play</button>' +
-            '</li>'
-          );
-        }).join("");
-
-        bindSongButtons();
-        setActiveSong();
+    function updateMediaPlaybackState() {
+      if (!mediaSessionSupported()) {
+        return;
       }
 
-      function bindSongButtons() {
-        const playSongButtons = Array.from(document.querySelectorAll(".play-song"));
+      try {
+        navigator.mediaSession.playbackState = audio.paused ? "paused" : "playing";
+      } catch (error) {
+        console.warn("Could not update Media Session playback state:", error);
+      }
+    }
 
-        playSongButtons.forEach(function (button) {
-          button.addEventListener("click", function () {
-            const index = Number(button.dataset.index);
+    function updateMediaPosition() {
+      if (!mediaSessionSupported()) {
+        return;
+      }
 
-            if (index === currentIndex && hasLoadedSong && !audio.paused) {
-              audio.pause();
-            } else {
-              loadSong(index, true, true);
-            }
-          });
+      if (!Number.isFinite(audio.duration) || audio.duration <= 0) {
+        return;
+      }
+
+      if (typeof navigator.mediaSession.setPositionState !== "function") {
+        return;
+      }
+
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: audio.duration,
+          playbackRate: audio.playbackRate || 1,
+          position: Math.min(Math.max(audio.currentTime, 0), audio.duration)
+        });
+      } catch (error) {
+        /*
+          Some browsers are picky here, especially if metadata/duration
+          is not fully ready yet.
+        */
+      }
+    }
+
+    function safePlay() {
+      initializeEqualizer();
+
+      const playPromise = audio.play();
+
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(function (error) {
+          console.warn("Playback could not start:", error);
         });
       }
 
-      function getSongItems() {
-        return Array.from(document.querySelectorAll(".song-item"));
-      }
+      return playPromise;
+    }
 
-      function getPlaySongButtons() {
-        return Array.from(document.querySelectorAll(".play-song"));
-      }
-
-      function setActiveSong() {
-        const songItems = getSongItems();
-        const playSongButtons = getPlaySongButtons();
-
-        songItems.forEach(function (item) {
-          const index = Number(item.dataset.index);
-          item.classList.toggle("active", index === currentIndex);
+    async function loadSongsFromJson() {
+      try {
+        const response = await fetch(SONGS_JSON_URL, {
+          cache: "no-store"
         });
 
-        playSongButtons.forEach(function (button) {
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status + " while loading " + SONGS_JSON_URL);
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+          throw new Error("Expected " + SONGS_JSON_URL + " to contain a JSON array.");
+        }
+
+        songs = data.map(normalizeSong).filter(function (song) {
+          return song.file && song.title;
+        });
+
+        renderSongList();
+      } catch (error) {
+        console.error(error);
+
+        songs = [];
+
+        songList.innerHTML =
+          '<li class="song-status">' +
+          'Could not load songs from <strong>music/songs.json</strong>. ' +
+          'Please check that the file exists, contains a JSON array, and is being served by a web server.' +
+          '</li>';
+
+        songsCount.textContent = "No songs loaded";
+      }
+    }
+
+    function renderSongList() {
+      if (!songs.length) {
+        songList.innerHTML = '<li class="song-status">No songs found.</li>';
+        songsCount.textContent = "No songs loaded";
+        return;
+      }
+
+      songsCount.textContent =
+        songs.length === 1 ? "1 song" : songs.length + " songs";
+
+      songList.innerHTML = songs.map(function (song, index) {
+        const number = String(index + 1).padStart(2, "0");
+        const imageHtml = song.image
+          ? '<img class="song-cover" src="' + escapeHtml(song.image) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\';" />'
+          : '<div class="song-cover" aria-hidden="true"></div>';
+
+        return (
+          '<li class="song-item" data-index="' + index + '">' +
+            '<span class="song-number">' + number + '</span>' +
+            imageHtml +
+            '<div>' +
+              '<div class="song-title">' + escapeHtml(song.title) + '</div>' +
+              '<div class="song-meta">' + escapeHtml(song.artist) + '</div>' +
+            '</div>' +
+            '<button class="play-song" type="button" data-index="' + index + '">Play</button>' +
+          '</li>'
+        );
+      }).join("");
+
+      bindSongButtons();
+      setActiveSong();
+    }
+
+    function bindSongButtons() {
+      const playSongButtons = Array.from(document.querySelectorAll(".play-song"));
+
+      playSongButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
           const index = Number(button.dataset.index);
-          button.textContent = index === currentIndex && !audio.paused ? "Pause" : "Play";
-        });
-      }
 
-      function updateShuffleButton() {
-        shuffleButton.classList.toggle("active", shuffleEnabled);
-        shuffleButton.setAttribute(
-          "aria-label",
-          shuffleEnabled ? "Turn shuffle off" : "Turn shuffle on"
-        );
-        shuffleButton.setAttribute(
-          "aria-pressed",
-          shuffleEnabled ? "true" : "false"
-        );
-        shuffleButton.title = shuffleEnabled ? "Shuffle on" : "Shuffle off";
-      }
-
-      function updateEqButton() {
-        const isOpen = eqPanel.classList.contains("open");
-
-        eqButton.classList.toggle("active", isOpen);
-        eqButton.setAttribute(
-          "aria-label",
-          isOpen ? "Hide equalizer" : "Show equalizer"
-        );
-        eqButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      }
-
-      function closeEqPanel() {
-        if (eqPanel.classList.contains("open")) {
-          eqPanel.classList.remove("open");
-          updateEqButton();
-        }
-      }
-
-      function initializeEqualizer() {
-        if (eqInitialized) {
-          if (audioContext && audioContext.state === "suspended") {
-            audioContext.resume();
+          if (index === currentIndex && hasLoadedSong && !audio.paused) {
+            audio.pause();
+          } else {
+            loadSong(index, true, true);
           }
-          return;
+        });
+      });
+    }
+
+    function getSongItems() {
+      return Array.from(document.querySelectorAll(".song-item"));
+    }
+
+    function getPlaySongButtons() {
+      return Array.from(document.querySelectorAll(".play-song"));
+    }
+
+    function setActiveSong() {
+      const songItems = getSongItems();
+      const playSongButtons = getPlaySongButtons();
+
+      songItems.forEach(function (item) {
+        const index = Number(item.dataset.index);
+        item.classList.toggle("active", index === currentIndex);
+      });
+
+      playSongButtons.forEach(function (button) {
+        const index = Number(button.dataset.index);
+        button.textContent = index === currentIndex && !audio.paused ? "Pause" : "Play";
+      });
+    }
+
+    function updateShuffleButton() {
+      shuffleButton.classList.toggle("active", shuffleEnabled);
+      shuffleButton.setAttribute(
+        "aria-label",
+        shuffleEnabled ? "Turn shuffle off" : "Turn shuffle on"
+      );
+      shuffleButton.setAttribute(
+        "aria-pressed",
+        shuffleEnabled ? "true" : "false"
+      );
+      shuffleButton.title = shuffleEnabled ? "Shuffle on" : "Shuffle off";
+    }
+
+    function updateEqButton() {
+      const isOpen = eqPanel.classList.contains("open");
+
+      eqButton.classList.toggle("active", isOpen);
+      eqButton.setAttribute(
+        "aria-label",
+        isOpen ? "Hide equalizer" : "Show equalizer"
+      );
+      eqButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    }
+
+    function closeEqPanel() {
+      if (eqPanel.classList.contains("open")) {
+        eqPanel.classList.remove("open");
+        updateEqButton();
+      }
+    }
+
+    function initializeEqualizer() {
+      if (eqInitialized) {
+        if (audioContext && audioContext.state === "suspended") {
+          audioContext.resume().catch(function (error) {
+            console.warn("Could not resume AudioContext:", error);
+          });
         }
+        return;
+      }
 
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 
-        if (!AudioContextClass) {
-          console.warn("Web Audio API is not supported in this browser.");
-          return;
-        }
+      if (!AudioContextClass) {
+        console.warn("Web Audio API is not supported in this browser.");
+        return;
+      }
 
+      try {
         audioContext = new AudioContextClass();
         sourceNode = audioContext.createMediaElementSource(audio);
 
@@ -1034,255 +1214,283 @@ body::after {
         eqFilters[eqFilters.length - 1].connect(audioContext.destination);
 
         eqInitialized = true;
+      } catch (error) {
+        console.warn("Could not initialize equalizer:", error);
+      }
+    }
+
+    function setEqBand(index, gain) {
+      const numericGain = Number(gain);
+
+      if (eqSettings[index] && eqSettings[index].valueEl) {
+        eqSettings[index].valueEl.textContent =
+          numericGain > 0 ? "+" + numericGain + " dB" : numericGain + " dB";
       }
 
-      function setEqBand(index, gain) {
-        const numericGain = Number(gain);
-
-        if (eqSettings[index] && eqSettings[index].valueEl) {
-          eqSettings[index].valueEl.textContent =
-            numericGain > 0 ? "+" + numericGain + " dB" : numericGain + " dB";
-        }
-
-        if (eqFilters[index]) {
-          eqFilters[index].gain.value = numericGain;
-        }
+      if (eqFilters[index]) {
+        eqFilters[index].gain.value = numericGain;
       }
+    }
 
-      function resetEqualizer() {
-        eqSliders.forEach(function (slider) {
-          slider.value = "0";
-          setEqBand(Number(slider.dataset.band), 0);
-        });
-      }
-
-      function getRandomSongIndex() {
-        if (songs.length <= 1) {
-          return currentIndex;
-        }
-
-        let nextIndex = currentIndex;
-
-        while (nextIndex === currentIndex) {
-          nextIndex = Math.floor(Math.random() * songs.length);
-        }
-
-        return nextIndex;
-      }
-
-      function loadSong(index, autoplay, addToHistory) {
-        if (!songs.length) {
-          nowPlaying.innerHTML = "Now Playing: <strong>No songs loaded</strong>";
-          return;
-        }
-
-        if (index < 0) {
-          index = songs.length - 1;
-        }
-
-        if (index >= songs.length) {
-          index = 0;
-        }
-
-        if (addToHistory && hasLoadedSong && index !== currentIndex) {
-          shuffleHistory.push(currentIndex);
-        }
-
-        currentIndex = index;
-        const song = songs[currentIndex];
-
-        audio.src = song.src;
-        audio.load();
-        hasLoadedSong = true;
-
-        nowPlaying.innerHTML =
-          "Now Playing: <strong>" +
-          escapeHtml(song.title) +
-          "</strong> <span>— " +
-          escapeHtml(song.artist) +
-          "</span>";
-
-        progress.value = 0;
-        currentTimeEl.textContent = "0:00";
-        durationEl.textContent = "0:00";
-
-        setActiveSong();
-
-        const activeItem = document.querySelector('.song-item[data-index="' + currentIndex + '"]');
-        if (activeItem) {
-          activeItem.scrollIntoView({
-            block: "nearest",
-            behavior: "smooth"
-          });
-        }
-
-        if (autoplay) {
-          initializeEqualizer();
-
-          audio.play().catch(function (error) {
-            console.warn("Playback could not start:", error);
-          });
-        }
-      }
-
-      function playPause() {
-        initializeEqualizer();
-
-        if (!songs.length) {
-          nowPlaying.innerHTML = "Now Playing: <strong>No songs loaded</strong>";
-          return;
-        }
-
-        if (!hasLoadedSong) {
-          loadSong(currentIndex, true, false);
-          return;
-        }
-
-        if (audio.paused) {
-          audio.play().catch(function (error) {
-            console.warn("Playback could not start:", error);
-          });
-        } else {
-          audio.pause();
-        }
-      }
-
-      function playNext() {
-        if (!songs.length) {
-          return;
-        }
-
-        if (shuffleEnabled) {
-          loadSong(getRandomSongIndex(), true, true);
-        } else {
-          loadSong(currentIndex + 1, true, false);
-        }
-      }
-
-      function playPrevious() {
-        if (!songs.length) {
-          return;
-        }
-
-        if (audio.currentTime > 3) {
-          audio.currentTime = 0;
-          return;
-        }
-
-        if (shuffleEnabled && shuffleHistory.length > 0) {
-          const previousIndex = shuffleHistory.pop();
-          loadSong(previousIndex, true, false);
-        } else {
-          loadSong(currentIndex - 1, true, false);
-        }
-      }
-
-      shuffleButton.addEventListener("click", function () {
-        shuffleEnabled = !shuffleEnabled;
-
-        if (!shuffleEnabled) {
-          shuffleHistory = [];
-        }
-
-        updateShuffleButton();
-      });
-
-      eqButton.addEventListener("click", function (event) {
-        event.stopPropagation();
-        eqPanel.classList.toggle("open");
-        updateEqButton();
-      });
-
-      eqPanel.addEventListener("click", function (event) {
-        event.stopPropagation();
-      });
-
-      document.addEventListener("pointerdown", function (event) {
-        const clickedInsideEqPanel = eqPanel.contains(event.target);
-        const clickedEqButton = eqButton.contains(event.target);
-
-        if (!clickedInsideEqPanel && !clickedEqButton) {
-          closeEqPanel();
-        }
-      });
-
-      eqResetButton.addEventListener("click", function () {
-        initializeEqualizer();
-        resetEqualizer();
-      });
-
+    function resetEqualizer() {
       eqSliders.forEach(function (slider) {
-        slider.addEventListener("input", function () {
-          initializeEqualizer();
-          setEqBand(Number(slider.dataset.band), slider.value);
+        slider.value = "0";
+        setEqBand(Number(slider.dataset.band), 0);
+      });
+    }
+
+    function getRandomSongIndex() {
+      if (songs.length <= 1) {
+        return currentIndex;
+      }
+
+      let nextIndex = currentIndex;
+
+      while (nextIndex === currentIndex) {
+        nextIndex = Math.floor(Math.random() * songs.length);
+      }
+
+      return nextIndex;
+    }
+
+    function loadSong(index, autoplay, addToHistory) {
+      if (!songs.length) {
+        nowPlaying.innerHTML = "Now Playing: <strong>No songs loaded</strong>";
+        return;
+      }
+
+      if (index < 0) {
+        index = songs.length - 1;
+      }
+
+      if (index >= songs.length) {
+        index = 0;
+      }
+
+      if (addToHistory && hasLoadedSong && index !== currentIndex) {
+        shuffleHistory.push(currentIndex);
+      }
+
+      currentIndex = index;
+      const song = songs[currentIndex];
+
+      /*
+        Important for persistence:
+        We keep the same audio element and only change src.
+        Do not replace the audio element itself.
+      */
+      audio.src = song.src;
+      audio.load();
+      hasLoadedSong = true;
+
+      nowPlaying.innerHTML =
+        "Now Playing: <strong>" +
+        escapeHtml(song.title) +
+        "</strong> <span>— " +
+        escapeHtml(song.artist) +
+        "</span>";
+
+      progress.value = 0;
+      currentTimeEl.textContent = "0:00";
+      durationEl.textContent = "0:00";
+
+      updateMediaSession(song);
+      setActiveSong();
+
+      const activeItem = document.querySelector('.song-item[data-index="' + currentIndex + '"]');
+      if (activeItem) {
+        activeItem.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth"
         });
-      });
+      }
 
-      playPauseButton.addEventListener("click", playPause);
-      nextButton.addEventListener("click", playNext);
-      prevButton.addEventListener("click", playPrevious);
+      if (autoplay) {
+        safePlay();
+      }
+    }
 
-      audio.addEventListener("play", function () {
-        playPauseButton.innerHTML = "&#10074;&#10074;";
-        playPauseButton.setAttribute("aria-label", "Pause");
-        setActiveSong();
-      });
+    function playPause() {
+      if (!songs.length) {
+        nowPlaying.innerHTML = "Now Playing: <strong>No songs loaded</strong>";
+        return;
+      }
 
-      audio.addEventListener("pause", function () {
-        playPauseButton.innerHTML = "&#9658;";
-        playPauseButton.setAttribute("aria-label", "Play");
-        setActiveSong();
-      });
+      if (!hasLoadedSong) {
+        loadSong(currentIndex, true, false);
+        return;
+      }
 
-      audio.addEventListener("loadedmetadata", function () {
-        durationEl.textContent = formatTime(audio.duration);
-      });
+      if (audio.paused) {
+        safePlay();
+      } else {
+        audio.pause();
+      }
+    }
 
-      audio.addEventListener("timeupdate", function () {
-        if (!isSeeking && Number.isFinite(audio.duration) && audio.duration > 0) {
-          progress.value = String((audio.currentTime / audio.duration) * 100);
-        }
+    function playNext() {
+      if (!songs.length) {
+        return;
+      }
 
-        currentTimeEl.textContent = formatTime(audio.currentTime);
-      });
+      if (shuffleEnabled) {
+        loadSong(getRandomSongIndex(), true, true);
+      } else {
+        loadSong(currentIndex + 1, true, false);
+      }
+    }
 
-      audio.addEventListener("ended", playNext);
+    function playPrevious() {
+      if (!songs.length) {
+        return;
+      }
 
-      audio.addEventListener("error", function () {
-        const song = songs[currentIndex];
+      if (audio.currentTime > 3) {
+        audio.currentTime = 0;
+        updateMediaPosition();
+        return;
+      }
 
-        nowPlaying.innerHTML =
-          "Now Playing: <strong>Could not load audio file</strong>" +
-          "<span> — check path: " +
-          escapeHtml(song ? song.src : "") +
-          "</span>";
+      if (shuffleEnabled && shuffleHistory.length > 0) {
+        const previousIndex = shuffleHistory.pop();
+        loadSong(previousIndex, true, false);
+      } else {
+        loadSong(currentIndex - 1, true, false);
+      }
+    }
 
-        playPauseButton.innerHTML = "&#9658;";
-        setActiveSong();
-      });
+    shuffleButton.addEventListener("click", function () {
+      shuffleEnabled = !shuffleEnabled;
 
-      progress.addEventListener("input", function () {
-        isSeeking = true;
-      });
+      if (!shuffleEnabled) {
+        shuffleHistory = [];
+      }
 
-      progress.addEventListener("change", function () {
-        if (Number.isFinite(audio.duration) && audio.duration > 0) {
-          audio.currentTime = (Number(progress.value) / 100) * audio.duration;
-        }
-
-        isSeeking = false;
-      });
-
-      volume.addEventListener("input", function () {
-        audio.volume = Number(volume.value);
-      });
-
-      nowPlaying.innerHTML = "Now Playing: <strong>—</strong>";
       updateShuffleButton();
-      updateEqButton();
-      resetEqualizer();
-      loadSongsFromJson();
     });
-  </script>
+
+    eqButton.addEventListener("click", function (event) {
+      event.stopPropagation();
+      eqPanel.classList.toggle("open");
+      updateEqButton();
+    });
+
+    eqPanel.addEventListener("click", function (event) {
+      event.stopPropagation();
+    });
+
+    document.addEventListener("pointerdown", function (event) {
+      const clickedInsideEqPanel = eqPanel.contains(event.target);
+      const clickedEqButton = eqButton.contains(event.target);
+
+      if (!clickedInsideEqPanel && !clickedEqButton) {
+        closeEqPanel();
+      }
+    });
+
+    eqResetButton.addEventListener("click", function () {
+      initializeEqualizer();
+      resetEqualizer();
+    });
+
+    eqSliders.forEach(function (slider) {
+      slider.addEventListener("input", function () {
+        initializeEqualizer();
+        setEqBand(Number(slider.dataset.band), slider.value);
+      });
+    });
+
+    playPauseButton.addEventListener("click", playPause);
+    nextButton.addEventListener("click", playNext);
+    prevButton.addEventListener("click", playPrevious);
+
+    audio.addEventListener("play", function () {
+      playPauseButton.innerHTML = "&#10074;&#10074;";
+      playPauseButton.setAttribute("aria-label", "Pause");
+      updateMediaPlaybackState();
+      updateMediaPosition();
+      setActiveSong();
+    });
+
+    audio.addEventListener("pause", function () {
+      playPauseButton.innerHTML = "&#9658;";
+      playPauseButton.setAttribute("aria-label", "Play");
+      updateMediaPlaybackState();
+      updateMediaPosition();
+      setActiveSong();
+    });
+
+    audio.addEventListener("loadedmetadata", function () {
+      durationEl.textContent = formatTime(audio.duration);
+      updateMediaPosition();
+    });
+
+    audio.addEventListener("durationchange", function () {
+      durationEl.textContent = formatTime(audio.duration);
+      updateMediaPosition();
+    });
+
+    audio.addEventListener("ratechange", function () {
+      updateMediaPosition();
+    });
+
+    audio.addEventListener("timeupdate", function () {
+      if (!isSeeking && Number.isFinite(audio.duration) && audio.duration > 0) {
+        progress.value = String((audio.currentTime / audio.duration) * 100);
+      }
+
+      currentTimeEl.textContent = formatTime(audio.currentTime);
+      updateMediaPosition();
+    });
+
+    audio.addEventListener("ended", function () {
+      updateMediaPlaybackState();
+      playNext();
+    });
+
+    audio.addEventListener("error", function () {
+      const song = songs[currentIndex];
+
+      nowPlaying.innerHTML =
+        "Now Playing: <strong>Could not load audio file</strong>" +
+        "<span> — check path: " +
+        escapeHtml(song ? song.src : "") +
+        "</span>";
+
+      playPauseButton.innerHTML = "&#9658;";
+      updateMediaPlaybackState();
+      setActiveSong();
+    });
+
+    progress.addEventListener("input", function () {
+      isSeeking = true;
+    });
+
+    progress.addEventListener("change", function () {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        audio.currentTime = (Number(progress.value) / 100) * audio.duration;
+        updateMediaPosition();
+      }
+
+      isSeeking = false;
+    });
+
+    volume.addEventListener("input", function () {
+      audio.volume = Number(volume.value);
+    });
+
+    /*
+      Intentionally no visibilitychange / blur / pagehide pause handlers.
+      Removing those helps mobile browsers keep audio alive when the screen locks.
+    */
+
+    nowPlaying.innerHTML = "Now Playing: <strong>—</strong>";
+    updateShuffleButton();
+    updateEqButton();
+    resetEqualizer();
+    loadSongsFromJson();
+  });
+</script>
+  
 </body>
 </html>
