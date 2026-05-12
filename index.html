@@ -405,206 +405,183 @@ For anyone who has ever felt slightly misread by the world, slightly out of step
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-
 import { getFirestore, doc, getDoc, setDoc, updateDoc, increment }
-
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-
-apiKey: "AIzaSyDluUOyyk1qdndO2729JiXkY_0w829ttoc",
-
-authDomain: "your-band-player.firebaseapp.com",
-
-projectId: "your-band-player"
-
+  apiKey: "AIzaSyDluUOyyk1qdndO2729JiXkY_0w829ttoc",
+  authDomain: "your-band-player.firebaseapp.com",
+  projectId: "your-band-player"
 };
 
 const app = initializeApp(firebaseConfig);
-
 const db = getFirestore(app);
 
+// ✅ SINGLE AUDIO INSTANCE
 const audio = new Audio();
 
 let songs = [];
-
 let currentIndex = 0;
-
 let shuffleMode = false;
+
+// ============================
+// ELEMENT REFERENCES
+// ============================
 
 const eqToggle = document.getElementById("eqToggle");
 const eqPanel = document.getElementById("eqPanel");
-
-eqToggle.addEventListener("click", () => {
-  eqPanel.classList.toggle("active");
-});  
-
 const progress = document.getElementById("progress");
-
 const progressContainer = document.getElementById("progressContainer");
-
 const timeDisplay = document.getElementById("timeDisplay");
-
 const playBtn = document.getElementById("playBtn");
-
 const playIcon = document.getElementById("playIcon");
 
-const audio = document.querySelector("audio");
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-const audioContext = new AudioContext();
+// ============================
+// ✅ SAFE EQ SETUP
+// ============================
 
-const source = audioContext.createMediaElementSource(audio);
+let audioContext = null;
+let sourceNode = null;
+let filters = [];
+let eqInitialised = false;
 
-// Create EQ bands
-const frequencies = [60, 230, 910, 3600, 14000];
-const filters = frequencies.map(freq => {
-  const filter = audioContext.createBiquadFilter();
-  filter.type = "peaking";
-  filter.frequency.value = freq;
-  filter.Q.value = 1;
-  filter.gain.value = 0;
-  return filter;
-});
+function setupEQ() {
+  if (eqInitialised) return;
 
-// Chain filters
-source.connect(filters[0]);
-for (let i = 0; i < filters.length - 1; i++) {
-  filters[i].connect(filters[i + 1]);
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  audioContext = new AudioContext();
+
+  sourceNode = audioContext.createMediaElementSource(audio);
+
+  const frequencies = [60, 230, 910, 3600, 14000];
+
+  filters = frequencies.map(freq => {
+    const filter = audioContext.createBiquadFilter();
+    filter.type = "peaking";
+    filter.frequency.value = freq;
+    filter.Q.value = 1;
+    filter.gain.value = 0;
+    return filter;
+  });
+
+  let previousNode = sourceNode;
+  filters.forEach(filter => {
+    previousNode.connect(filter);
+    previousNode = filter;
+  });
+
+  previousNode.connect(audioContext.destination);
+
+  eqInitialised = true;
 }
-filters[filters.length - 1].connect(audioContext.destination);
 
-// Resume context on user interaction (iOS requirement)
-document.body.addEventListener("click", () => {
+eqToggle?.addEventListener("click", () => {
+
+  if (!eqInitialised) setupEQ();
+
   if (audioContext.state === "suspended") {
     audioContext.resume();
   }
+
+  eqPanel.classList.toggle("active");
 });
 
-// Hook sliders
 document.querySelectorAll(".eq-band input").forEach(slider => {
   slider.addEventListener("input", (e) => {
-    const bandIndex = e.target.dataset.band;
-    filters[bandIndex].gain.value = e.target.value;
+    const bandIndex = parseInt(e.target.dataset.band);
+    if (filters[bandIndex]) {
+      filters[bandIndex].gain.value = e.target.value;
+    }
   });
 });
-  
+
+// ============================
+// PLAYER CONTROLS
+// ============================
+
 function setPlayIcon(isPlaying) {
-
-playIcon.innerHTML = isPlaying
-
-? `<line x1="6" y1="4" x2="6" y2="20"/>
-
-<line x1="18" y1="4" x2="18" y2="20"/>`
-
-: `<polygon points="6 4 20 12 6 20 6 4"/>`;
-
+  playIcon.innerHTML = isPlaying
+    ? `<line x1="6" y1="4" x2="6" y2="20"/>
+       <line x1="18" y1="4" x2="18" y2="20"/>`
+    : `<polygon points="6 4 20 12 6 20 6 4"/>`;
 }
 
 playBtn.onclick = () => {
 
-// If nothing has been loaded yet, start first track
+  if (!audio.src && songs.length > 0) {
+    loadSong(0, true);
+    return;
+  }
 
-if (!audio.src && songs.length > 0) {
-
-loadSong(0, true);
-
-return;
-
-}
-
-if (audio.paused) {
-
-audio.play();
-
-} else {
-
-audio.pause();
-
-}
-
+  if (audio.paused) {
+    audio.play();
+  } else {
+    audio.pause();
+  }
 };
 
 audio.addEventListener("play", () => setPlayIcon(true));
-
 audio.addEventListener("pause", () => setPlayIcon(false));
 
 audio.addEventListener("ended", () => {
+  let nextIndex;
 
-let nextIndex;
+  if (shuffleMode) {
+    if (songs.length <= 1) return;
+    do {
+      nextIndex = Math.floor(Math.random() * songs.length);
+    } while (nextIndex === currentIndex);
+  } else {
+    nextIndex = (currentIndex + 1) % songs.length;
+  }
 
-if (shuffleMode) {
-
-if (songs.length <= 1) return;
-
-do {
-
-nextIndex = Math.floor(Math.random() * songs.length);
-
-} while (nextIndex === currentIndex);
-
-} else {
-
-nextIndex = (currentIndex + 1) % songs.length;
-
-}
-
-loadSong(nextIndex, true);
-
+  loadSong(nextIndex, true);
 });
+
+// ============================
+// TIME / SCRUBBING
+// ============================
 
 function formatTime(seconds) {
-
-const minutes = Math.floor(seconds / 60);
-
-const secs = Math.floor(seconds % 60);
-
-return minutes + ":" + (secs < 10 ? "0" + secs : secs);
-
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return minutes + ":" + (secs < 10 ? "0" + secs : secs);
 }
 
-audio.addEventListener("timeupdate", () => {
-
-if (audio.duration) {
-
-const percent = (audio.currentTime / audio.duration) * 100;
-
-if (!isScrubbing) {
-  progress.style.width = percent + "%";
-}
-
-timeDisplay.textContent =
-
-formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
-
-}
-
-});
-
-  let isScrubbing = false;
+let isScrubbing = false;
 let scrubPercent = 0;
 
-// Helper to get percent based on mouse/touch position
+audio.addEventListener("timeupdate", () => {
+  if (audio.duration) {
+    const percent = (audio.currentTime / audio.duration) * 100;
+    if (!isScrubbing) {
+      progress.style.width = percent + "%";
+    }
+
+    timeDisplay.textContent =
+      formatTime(audio.currentTime) + " / " +
+      formatTime(audio.duration);
+  }
+});
+
 function getScrubPercent(clientX) {
   const rect = progressContainer.getBoundingClientRect();
   const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
   return x / rect.width;
 }
 
-// Mouse Down
 progressContainer.addEventListener("mousedown", (e) => {
   isScrubbing = true;
   scrubPercent = getScrubPercent(e.clientX);
   progress.style.width = (scrubPercent * 100) + "%";
 });
 
-// Mouse Move
 window.addEventListener("mousemove", (e) => {
   if (!isScrubbing) return;
   scrubPercent = getScrubPercent(e.clientX);
   progress.style.width = (scrubPercent * 100) + "%";
 });
 
-// Mouse Up (✅ Apply audio position here)
 window.addEventListener("mouseup", () => {
   if (!isScrubbing) return;
   isScrubbing = false;
@@ -613,249 +590,82 @@ window.addEventListener("mouseup", () => {
   }
 });
 
-// ✅ Touch Support
-
-progressContainer.addEventListener("touchstart", (e) => {
-  isScrubbing = true;
-  scrubPercent = getScrubPercent(e.touches[0].clientX);
-  progress.style.width = (scrubPercent * 100) + "%";
-});
-
-window.addEventListener("touchmove", (e) => {
-  if (!isScrubbing) return;
-  scrubPercent = getScrubPercent(e.touches[0].clientX);
-  progress.style.width = (scrubPercent * 100) + "%";
-});
-
-window.addEventListener("touchend", () => {
-  if (!isScrubbing) return;
-  isScrubbing = false;
-  if (audio.duration) {
-    audio.currentTime = scrubPercent * audio.duration;
-  }
-});
+// ============================
+// LOAD SONGS
+// ============================
 
 fetch("music/songs.json")
-
-.then(res => res.json())
-
-.then(data => {
-
-songs = data.map(song => ({
-
-file: "music/" + song.file,
-
-title: song.title,
-
-image: song.image,
-
-id: song.file
-
-}));
-
-buildPlaylist();
-
-});
+  .then(res => res.json())
+  .then(data => {
+    songs = data.map(song => ({
+      file: "music/" + song.file,
+      title: song.title,
+      image: song.image,
+      id: song.file
+    }));
+    buildPlaylist();
+  });
 
 async function buildPlaylist() {
 
-const playlist = document.getElementById("playlist");
+  const playlist = document.getElementById("playlist");
+  playlist.innerHTML = "";
 
-playlist.innerHTML = "";
+  for (let i = 0; i < songs.length; i++) {
 
-for (let i = 0; i < songs.length; i++) {
+    const docRef = doc(db, "plays", songs[i].id);
+    const snap = await getDoc(docRef);
+    const count = snap.exists() ? snap.data().count : 0;
 
-const docRef = doc(db, "plays", songs[i].id);
+    const div = document.createElement("div");
+    div.className = "song";
 
-const snap = await getDoc(docRef);
+    div.innerHTML = `
+      <img src="${songs[i].image}">
+      <div class="song-info">
+        <div>${songs[i].title}</div>
+        <div class="song-meta" id="plays-${i}">
+          ${count} plays
+        </div>
+      </div>
+      <button class="download-btn">Download</button>
+    `;
 
-const count = snap.exists() ? snap.data().count : 0;
+    div.querySelector(".download-btn").onclick = (e) => {
+      e.stopPropagation();
+      const link = document.createElement("a");
+      link.href = songs[i].file;
+      link.download = songs[i].title;
+      link.click();
+    };
 
-const div = document.createElement("div");
+    div.onclick = () => loadSong(i, true);
 
-div.className = "song";
-
-div.innerHTML = `
-
-<img src="${songs[i].image}">
-
-<div class="song-info">
-
-<div>${songs[i].title}</div>
-
-<div class="song-meta" id="plays-${i}">${count} plays</div>
-
-</div>
-
-<button class="download-btn">Download</button>
-
-`;
-
-div.querySelector(".download-btn").onclick = (e) => {
-
-e.stopPropagation();
-
-const link = document.createElement("a");
-
-link.href = songs[i].file;
-
-link.download = songs[i].title;
-
-link.click();
-
-};
-
-div.onclick = () => loadSong(i, true);
-
-playlist.appendChild(div);
-
+    playlist.appendChild(div);
+  }
 }
 
+function loadSong(index, autoPlay = true) {
+
+  currentIndex = index;
+
+  document.querySelectorAll(".song")
+    .forEach(el => el.classList.remove("playing"));
+
+  const playlistItems = document.querySelectorAll(".song");
+  if (playlistItems[index]) {
+    playlistItems[index].classList.add("playing");
+  }
+
+  audio.src = songs[index].file;
+
+  document.getElementById("nowPlaying").textContent =
+    "Now Playing: " + songs[index].title;
+
+  if (autoPlay) {
+    audio.play();
+  }
 }
-
-async function incrementPlay(index) {
-
-const docRef = doc(db, "plays", songs[index].id);
-
-const snap = await getDoc(docRef);
-
-if (!snap.exists()) {
-
-await setDoc(docRef, { count: 1 });
-
-} else {
-
-await updateDoc(docRef, { count: increment(1) });
-
-}
-
-const updated = await getDoc(docRef);
-
-document.getElementById(`plays-${index}`).textContent =
-
-updated.data().count + " plays";
-
-}
-
-function loadSong(index, autoPlay=true) {
-
-currentIndex = index;
-
-// Highlight currently playing track
-
-document.querySelectorAll(".song").forEach(el =>
-
-el.classList.remove("playing")
-
-);
-
-const playlistItems = document.querySelectorAll(".song");
-
-if (playlistItems[index]) {
-
-playlistItems[index].classList.add("playing");
-
-}
-
-audio.src = songs[index].file;
-
-document.getElementById("nowPlaying").textContent =
-
-"Now Playing: " + songs[index].title;
-
-// ✅ Media Session API
-
-if ('mediaSession' in navigator) {
-
-navigator.mediaSession.metadata = new MediaMetadata({
-
-title: songs[index].title,
-
-artist: "Shaping Shay",
-
-album: "Shaping Shay",
-
-artwork: [
-
-{
-
-src: songs[index].image,
-
-sizes: "512x512",
-
-type: "image/png"
-
-}
-
-]
-
-});
-
-navigator.mediaSession.setActionHandler('play', () => {
-
-audio.play();
-
-});
-
-navigator.mediaSession.setActionHandler('pause', () => {
-
-audio.pause();
-
-});
-
-navigator.mediaSession.setActionHandler('previoustrack', () => {
-
-document.getElementById("prevBtn").click();
-
-});
-
-navigator.mediaSession.setActionHandler('nexttrack', () => {
-
-document.getElementById("nextBtn").click();
-
-});
-
-}
-
-if (autoPlay) {
-
-incrementPlay(index);
-
-audio.play();
-
-}
-
-}
-
-document.getElementById("nextBtn").onclick = () => {
-
-if (shuffleMode) {
-
-currentIndex = Math.floor(Math.random()*songs.length);
-
-} else {
-
-currentIndex = (currentIndex+1)%songs.length;
-
-}
-
-loadSong(currentIndex,true);
-
-};
-
-document.getElementById("prevBtn").onclick =
-
-() => loadSong((currentIndex-1+songs.length)%songs.length,true);
-
-document.getElementById("shuffleBtn").onclick = () => {
-
-shuffleMode = !shuffleMode;
-
-document.getElementById("shuffleBtn")
-
-.classList.toggle("active", shuffleMode);
-
-};
 
 </script>
 
