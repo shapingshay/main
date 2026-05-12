@@ -1,864 +1,1291 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shaping Shay</title>
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
-<link rel="manifest" href="site.webmanifest">
-<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">  
-<style>
-* { box-sizing: border-box; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shaping Shay</title>
 
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  color: white;
-  overflow-x: hidden;
-  background:
-    radial-gradient(circle at center, rgba(0,0,0,0.3), rgba(0,0,0,0.85)),
-    url("images/background.png") center center / cover no-repeat fixed;
-  background-color: black;
-}
+  <style>
+    :root {
+      --bg: #111016;
+      --panel: rgba(255, 255, 255, 0.08);
+      --panel-strong: rgba(255, 255, 255, 0.13);
+      --text: #f5f1f8;
+      --muted: #c8bdce;
+      --accent: #d58cff;
+      --accent-2: #ff8ccf;
+      --border: rgba(255, 255, 255, 0.16);
+      --shadow: rgba(0, 0, 0, 0.35);
+      --song-row-height: 5.4rem;
+    }
 
-.overlay {
-  background: rgba(0,0,0,0.75);
-  min-height: 100vh;
-  padding: 60px 20px 160px 20px;
-}
+    * {
+      box-sizing: border-box;
+    }
 
-.logo {
-  text-align: center;
-  margin-bottom: 60px;
-}
+    html {
+      scroll-behavior: smooth;
+      min-height: 100%;
+      background: #000;
+    }
 
-.logo img {
-  max-width: 320px;
-  width: 100%;
-}
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: #000;
+      line-height: 1.6;
+      position: relative;
+      overflow-x: hidden;
+    }
 
-.about-image {
-  width: 75%;
-  max-width: 75%;
-  height: auto;
-  display: block;
-  margin: 20px auto;
-}
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -3;
+      background-image: url("images/background.png");
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
 
-.playlist {
-  max-width: 900px;
-  margin: 0 auto 100px auto;
-  max-height: 500px;
-  overflow-y: auto;
-  border: 1px solid purple;
-  background: rgba(0,0,0,0.6);
-}
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      background:
+        radial-gradient(
+          ellipse at center,
+          rgba(0, 0, 0, 0.70) 0%,
+          rgba(0, 0, 0, 0.74) 32%,
+          rgba(0, 0, 0, 0.88) 62%,
+          rgba(0, 0, 0, 1) 100%
+        ),
+        radial-gradient(circle at top left, rgba(213, 140, 255, 0.18), transparent 34rem),
+        radial-gradient(circle at top right, rgba(255, 140, 207, 0.13), transparent 32rem);
+    }
 
-.song {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 15px;
-  border-bottom: 1px solid #222;
-  cursor: pointer;
-  transition: background 0.2s;
-}
+    a {
+      color: var(--accent);
+    }
 
-.song:hover { background: rgba(128,0,128,0.4); }
+    .page {
+      width: min(1100px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2rem 0 14rem;
+      position: relative;
+      z-index: 1;
+    }
 
-.song img {
-  width: 55px;
-  height: 55px;
-  object-fit: cover;
-  border: 1px solid purple;
-}
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 1.25rem;
+      padding: 2rem 0 1rem;
+    }
 
-.song-info { flex: 1; }
+    .logo-wrap {
+      width: min(420px, 88vw);
+      margin: 0 auto;
+      border-radius: 2rem;
+      overflow: hidden;
+      box-shadow: 0 1.5rem 4rem var(--shadow);
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
 
-.song-meta {
-  font-size: 13px;
-  color: #bbb;
-  margin-top: 4px;
-}
+    .logo-wrap img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
 
-.song.playing {
-  background: rgba(187, 102, 255, 0.18);
-  border-left: 4px solid #bb66ff;
-}
+    .logo-fallback {
+      display: none;
+      padding: 3rem 1rem;
+    }
 
-.download-btn {
-  padding: 6px 10px;
-  background: transparent;
-  border: 1px solid #bb66ff;
-  color: #bb66ff;
-  cursor: pointer;
-  font-size: 12px;
-}
+    h1 {
+      margin: 0;
+      font-size: clamp(2.25rem, 8vw, 5rem);
+      line-height: 0.95;
+      letter-spacing: -0.06em;
+      text-shadow: 0 0.25rem 1.5rem rgba(213, 140, 255, 0.25);
+    }
 
-.sticky-player {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: rgba(10,10,10,0.95);
-  border-top: 3px solid purple;
-  padding: 15px 20px;
-}
+    .tagline {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+    }
 
-.player-inner {
-  max-width: 900px;
-  margin: 0 auto;
-}
+    main {
+      display: grid;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
 
-/* ✅ Now Playing row */
-.now-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 1.5rem;
+      padding: clamp(1.1rem, 3vw, 2rem);
+      box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(16px);
+    }
 
-#nowPlaying {
-  font-size: 15px;
-}
+    h2 {
+      margin: 0 0 1rem;
+      font-size: clamp(1.5rem, 4vw, 2.25rem);
+      letter-spacing: -0.035em;
+    }
 
-.time {
-  font-size: 14px;
-  min-width: 110px;
-  text-align: right;
-}
+    p {
+      margin: 0 0 1rem;
+    }
 
+    p:last-child {
+      margin-bottom: 0;
+    }
 
-/* ✅ Controls row */
-.controls-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 12px;
-}
+    .songs {
+      margin-top: 0.5rem;
+    }
 
-/* ✅ Buttons */
-.control-btn {
-  border: 2px solid purple;
-  background: #000;
-  color: #bb66ff;
-  width: 55px;
-  height: 55px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: box-shadow 0.2s, transform 0.1s;
-}
+    .songs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
 
-.control-btn:hover {
-  box-shadow: 0 0 15px #bb66ff;
-  transform: translateY(-1px);
-}
+    .songs-header h2 {
+      margin-bottom: 0;
+    }
 
-.control-btn.active {
-  box-shadow: 0 0 15px #bb66ff;
-}
+    .songs-count {
+      color: var(--muted);
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
 
-.control-btn svg {
-  width: 24px;
-  height: 24px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
+    .song-list-wrap {
+      max-height: calc((var(--song-row-height) * 10) + 6.75rem);
+      overflow-y: auto;
+      padding-right: 0.4rem;
+      border-radius: 1.1rem;
+      scrollbar-color: rgba(213, 140, 255, 0.65) rgba(255, 255, 255, 0.08);
+      scrollbar-width: thin;
+    }
 
-.player-inner {
-  max-width: 900px;
-  margin: 0 auto;
-}
+    .song-list-wrap::-webkit-scrollbar {
+      width: 0.65rem;
+    }
 
-/* ✅ Now Playing Row */
-.now-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
+    .song-list-wrap::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+    }
 
-#nowPlaying {
-  font-size: 15px;
-}
+    .song-list-wrap::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      border-radius: 999px;
+    }
 
-.time {
-  font-size: 14px;
-  min-width: 110px;
-  text-align: right;
-}
+    .song-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 0.75rem;
+    }
 
-/* ✅ Controls centered */
-.controls-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 25px;
-  margin-bottom: 15px;
-}
+    .song-item {
+      min-height: var(--song-row-height);
+      display: grid;
+      grid-template-columns: auto auto 1fr auto;
+      gap: 0.85rem;
+      align-items: center;
+      padding: 0.85rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.18);
+      transition: background 160ms ease, transform 160ms ease, border-color 160ms ease;
+    }
 
-/* ✅ Full width progress */
-.progress-container {
-  width: 100%;
-  height: 18px;
-  background: #222;
-  cursor: pointer;
-  border: 1px solid purple;
-}
+    .song-item:hover,
+    .song-item:focus-within {
+      background: var(--panel-strong);
+      border-color: rgba(213, 140, 255, 0.55);
+      transform: translateY(-1px);
+    }
 
-.progress {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, purple, #bb66ff);
-  transition: width 0.1s linear;
-}
+    .song-item.active {
+      background:
+        linear-gradient(135deg, rgba(213, 140, 255, 0.28), rgba(255, 140, 207, 0.13)),
+        rgba(0, 0, 0, 0.25);
+      border-color: rgba(213, 140, 255, 0.8);
+    }
 
+    .song-number {
+      width: 2rem;
+      height: 2rem;
+      display: inline-grid;
+      place-items: center;
+      color: var(--muted);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 0.9rem;
+      font-variant-numeric: tabular-nums;
+    }
 
-@media (max-width: 600px) {
-  .progress-container {
-    height: 24px;
-  }
-}
+    .song-cover {
+      width: 3.5rem;
+      height: 3.5rem;
+      border-radius: 0.8rem;
+      object-fit: cover;
+      background:
+        linear-gradient(135deg, rgba(213, 140, 255, 0.35), rgba(255, 140, 207, 0.16)),
+        rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      flex: 0 0 auto;
+    }
 
-.eq-panel {
-  position: fixed;
-  bottom: -260px;
-  left: 0;
-  width: 100%;
-  background: #111;
-  border-top: 1px solid #333;
-  transition: bottom 0.3s ease;
-  z-index: 999;
-}
+    .song-title {
+      font-weight: 700;
+      letter-spacing: -0.015em;
+    }
 
-.eq-panel.active {
-  bottom: 80px; /* height of your player */
-}
+    .song-meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
 
-.eq-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-  color: white;
-}
+    .song-status {
+      color: var(--muted);
+      font-size: 0.95rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px solid var(--border);
+    }
 
-.eq-sliders {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
+    button {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      color: var(--text);
+      font: inherit;
+    }
 
-.eq-band {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+    .play-song {
+      min-width: 4.75rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #120914;
+      font-weight: 800;
+      box-shadow: 0 0.5rem 1.5rem rgba(213, 140, 255, 0.22);
+    }
 
-.eq-band input[type="range"] {
-  writing-mode: bt-lr;
-  -webkit-appearance: slider-vertical;
-  height: 120px;
-}
-  
-</style>
+    .play-song:hover {
+      filter: brightness(1.08);
+    }
+
+    .player {
+      position: fixed;
+      left: 50%;
+      bottom: 1rem;
+      z-index: 10;
+      transform: translateX(-50%);
+      width: min(980px, calc(100% - 1rem));
+      max-height: calc(100vh - 2rem);
+      overflow-y: auto;
+      background: rgba(17, 16, 22, 0.94);
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+      padding: 0.85rem;
+      box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(18px);
+    }
+
+    .now-playing {
+      margin-bottom: 0.65rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .now-playing strong {
+      color: var(--text);
+    }
+
+    .player-controls {
+      display: grid;
+      grid-template-columns: auto auto auto auto auto 1fr auto;
+      gap: 0.7rem;
+      align-items: center;
+    }
+
+    .control-button {
+      width: 2.7rem;
+      height: 2.7rem;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border);
+      font-weight: 900;
+    }
+
+    .control-button svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      display: block;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .control-button.primary {
+      width: 3.1rem;
+      height: 3.1rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #120914;
+      border: 0;
+      font-size: 1.1rem;
+    }
+
+    .control-button:hover {
+      background-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .control-button.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #120914;
+      border-color: transparent;
+      box-shadow: 0 0.5rem 1.5rem rgba(213, 140, 255, 0.22);
+    }
+
+    .time {
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .progress-wrap {
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .volume {
+      width: 6rem;
+    }
+
+    .eq-panel {
+      display: none;
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .eq-panel.open {
+      display: block;
+    }
+
+    .eq-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .eq-title {
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .eq-reset {
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .eq-reset:hover {
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .eq-bands {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.85rem;
+      align-items: end;
+    }
+
+    .eq-band {
+      display: grid;
+      justify-items: center;
+      gap: 0.45rem;
+      min-width: 0;
+    }
+
+    .eq-band label {
+      color: var(--muted);
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .eq-value {
+      font-size: 0.8rem;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eq-slider {
+      writing-mode: bt-lr;
+      -webkit-appearance: slider-vertical;
+      appearance: slider-vertical;
+      width: 2rem;
+      height: 7rem;
+      accent-color: var(--accent);
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.92rem;
+      padding: 1rem 0 0;
+    }
+
+    @media (max-width: 860px) {
+      .player-controls {
+        grid-template-columns: auto auto auto auto auto 1fr;
+      }
+
+      .volume {
+        display: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .song-item {
+        grid-template-columns: auto auto 1fr;
+      }
+
+      .play-song {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        padding-bottom: 20rem;
+      }
+
+      .songs-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .song-list-wrap {
+        max-height: calc((var(--song-row-height) * 10) + 12rem);
+      }
+
+      .song-item {
+        grid-template-columns: auto 1fr;
+      }
+
+      .song-number {
+        display: none;
+      }
+
+      .song-cover {
+        width: 3rem;
+        height: 3rem;
+      }
+
+      .player {
+        bottom: 0.5rem;
+        border-radius: 1rem;
+      }
+
+      .player-controls {
+        grid-template-columns: repeat(5, auto);
+        justify-content: center;
+      }
+
+      .progress-wrap {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 100%;
+      }
+
+      .eq-bands {
+        gap: 0.45rem;
+      }
+
+      .eq-slider {
+        height: 6rem;
+      }
+
+      .eq-band label {
+        font-size: 0.72rem;
+      }
+    }
+  </style>
 </head>
 
 <body>
+  <div class="page">
+    <header>
+      <div class="logo-wrap">
+        <img
+          src="image/logo.png"
+          alt="Shaping Shay logo"
+          onerror="this.style.display='none'; document.querySelector('.logo-fallback').style.display='block';"
+        />
+        <div class="logo-fallback">
+          <h1>Shaping Shay</h1>
+        </div>
+      </div>
+      <p class="tagline">
+        Introspective alternative rock and indie folk for the tender distance
+        between the surface and the truth underneath it.
+      </p>
+    </header>
 
-<div class="overlay">
-  <div class="logo">
-    <img src="images/logo.png">
+    <main>
+      <section class="card songs" aria-labelledby="songs-heading">
+        <div class="songs-header">
+          <h2 id="songs-heading">Songs</h2>
+          <div class="songs-count" id="songsCount">Loading songs…</div>
+        </div>
+
+        <div class="song-list-wrap" aria-label="Scrollable song list">
+          <ol class="song-list" id="songList">
+            <li class="song-status">Loading songs from <strong>music/songs.json</strong>…</li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="about-heading">
+        <h2 id="about-heading">About Shaping Shay</h2>
+        <p>
+          Some artists write about the world. Shaping Shay writes about the
+          space between who you are and who you let people see. Rooted in
+          introspective alternative rock and indie folk, Shaping Shay crafts
+          songs that live in the uncomfortable, honest places most music skips
+          over — the moment after intimacy when the ceiling comes back into
+          view, the lifetime of being wanted for the wrong reasons, the quietly
+          exhausting performance of being someone you're not quite sure you are.
+        </p>
+        <p>
+          There is a thread running through everything Shaping Shay creates:
+          the tender, sometimes painful distance between the surface and the
+          truth underneath it. These are songs about vulnerability that doesn't
+          come easily, about the words that almost get said, about bodies and
+          hearts that don't always speak the same language.
+        </p>
+        <p>
+          What makes Shaping Shay distinct is the refusal to resolve things too
+          neatly. The hope here is quiet. The grief is real. And the moments of
+          connection — when they come — feel genuinely earned.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="contribute-heading">
+        <h2 id="contribute-heading">Feel like contributing?</h2>
+        <p>
+          This project is not about money. These songs are shared in the hope
+          that people out there going through the same emotions, struggles or
+          pains as me will stumble upon them and know you're not alone.
+        </p>
+        <p>
+          If I've helped you, that's great. Let me know on Reddit. If you want
+          to spare some money towards contributing, find your nearest LGBTQI+
+          charity, or your nearest mental health charity and donate there. Pay
+          it forward, give out some good energy!
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="shay-heading">
+        <h2 id="shay-heading">About Shay herself</h2>
+        <p>
+          Shay is the feminine persona of an AMAB individual, unlocked during a
+          gender identity journey. These songs are her creative outlet — telling
+          stories of genuine thoughts, feelings, and experiences.
+        </p>
+        <p>
+          Shay uses a variety of AI tools to bring this persona to life, from
+          various image generators like ChatGPT Image and Grok, and Suno for her
+          music. What you see may not be what you get, but does it really
+          matter?
+        </p>
+        <p>
+          Connect on Reddit:
+          <a href="https://www.reddit.com/user/Shaping_Shay" target="_blank" rel="noopener noreferrer">
+            Shaping_Shay
+          </a>
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        &copy; 2026 Shaping Shay - All rights reserved. All audio tracks were
+        created on a licensed tier of Suno.
+      </p>
+    </footer>
   </div>
 
-  <div class="playlist" id="playlist"></div>
-
-  <div style="max-width:900px;margin:0 auto 120px auto;padding:40px;background:rgba(0,0,0,0.65);border:1px solid purple;">
-    <h2 style="color:#bb66ff;">About Shaping Shay</h2>
-    <p>Some artists write about the world. Shaping Shay writes about the space between who you are and who you let people see.
-
-Rooted in introspective alternative rock and indie folk, Shaping Shay crafts songs that live in the uncomfortable, honest places most music skips over — the moment after intimacy when the ceiling comes back into view, the lifetime of being wanted for the wrong reasons, the quietly exhausting performance of being someone you're not quite sure you are.
-
-There is a thread running through everything Shaping Shay creates: the tender, sometimes painful distance between the surface and the truth underneath it. These are songs about vulnerability that doesn't come easily, about the words that almost get said, about bodies and hearts that don't always speak the same language. They are emotionally precise without being indulgent, and unflinching without being unkind.
-
-What makes Shaping Shay distinct is the refusal to resolve things too neatly. The hope here is quiet. The grief is real. And the moments of connection — when they come — feel genuinely earned.
-
-For anyone who has ever felt slightly misread by the world, slightly out of step with the version of themselves they present each day, Shaping Shay is the sound of someone else knowing exactly what that feels like.</p>
-  </div>
-
-
-  <div style="max-width:900px;margin:0 auto 120px auto;padding:40px;background:rgba(0,0,0,0.65);border:1px solid purple;">
-    <h2 style="color:#bb66ff;">Feel like contributing?</h2>
-    <p>This project is not about money.  These songs are shared in the hope that people out there going through the same emotions, struggles or pains as me will stumble upon them and let you know you're not alone.  If I've helped you, that's great.  Let me know on Reddit.  If you want to spare some money towards contributing find your nearest LGBTQI+ charity, or your nearest mental health charity and donate there.  Pay it forward, give out some good energy!</p>
-  </div>
-
-
-  
-
-  <div style="max-width:900px;margin:0 auto 120px auto;padding:40px;background:rgba(0,0,0,0.65);border:1px solid purple;">
-    <h2 style="color:#bb66ff;">About Shay herself</h2>
-    <p>Shay is the feminine persona of an AMAB individual, unlocked during a gender identity journey. These songs are her creative outlet — telling stories of genuine thoughts, feelings, and experiences. <br>Shay uses a variety of AI tools to bring this persona to life, from various image generators like ChatGPT Image and Grok and Suno for her music.  What you see may not be what you get, but does it really matter?<br><br> Connect on Reddit: <a href="https://www.reddit.com/user/Shaping_Shay" target="_blank"> Shaping_Shay</a>.</p>
-    <center><img src="images/shaybackstage.png" class="about-image"></center>
-    <center><P>(C) 2026 Shaping Shay - All rights reserved.  All audio tracks were created on a licensed tier of Suno.</P></center>
-  </div>
-</div>
-
-
-
-
-
-<div id="eqPanel" class="eq-panel">
-  <div class="eq-container">
-    <h3>Equaliser</h3>
-    <div class="eq-sliders">
-      <div class="eq-band">
-        <label>60Hz</label>
-        <input type="range" min="-12" max="12" value="0" step="1" data-band="0">
-      </div>
-      <div class="eq-band">
-        <label>230Hz</label>
-        <input type="range" min="-12" max="12" value="0" step="1" data-band="1">
-      </div>
-      <div class="eq-band">
-        <label>910Hz</label>
-        <input type="range" min="-12" max="12" value="0" step="1" data-band="2">
-      </div>
-      <div class="eq-band">
-        <label>3.6kHz</label>
-        <input type="range" min="-12" max="12" value="0" step="1" data-band="3">
-      </div>
-      <div class="eq-band">
-        <label>14kHz</label>
-        <input type="range" min="-12" max="12" value="0" step="1" data-band="4">
-      </div>
+  <aside class="player" aria-label="Audio player">
+    <div class="now-playing" id="nowPlaying">
+      Now Playing: <strong>—</strong>
     </div>
-  </div>
-</div>
 
-
-  
-  
-
-<div class="sticky-player">
-  <div class="player-inner">
-
-    <!-- ✅ Top Row -->
-    <div class="now-row">
-      <div id="nowPlaying">Now Playing: —</div>
-      <div class="time" id="timeDisplay">0:00 / 0:00</div>
-    </div>
-
-    <!-- ✅ Buttons Row -->
-    <div class="controls-row">
-      <button class="control-btn" id="prevBtn">
-        <svg viewBox="0 0 24 24">
-          <line x1="19" y1="5" x2="19" y2="19"/>
-          <polyline points="15 18 6 12 15 6"/>
+    <div class="player-controls">
+      <button class="control-button" type="button" id="shuffleButton" aria-label="Turn shuffle on" title="Shuffle">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 7h3.5c2.4 0 3.4 1.2 4.8 3.2l1.4 2" />
+          <path d="M3 17h3.5c2.4 0 3.4-1.2 4.8-3.2l1.4-2" />
+          <path d="M15 6h4l2 2-2 2h-4" />
+          <path d="M15 14h4l2 2-2 2h-4" />
         </svg>
       </button>
 
-      <button class="control-btn" id="playBtn">
-        <svg id="playIcon" viewBox="0 0 24 24">
-          <polygon points="6 4 20 12 6 20 6 4"/>
-        </svg>
+      <button class="control-button" type="button" id="eqButton" aria-label="Show equalizer" title="Equalizer">
+        EQ
       </button>
 
-      <button class="control-btn" id="nextBtn">
-        <svg viewBox="0 0 24 24">
-          <line x1="5" y1="5" x2="5" y2="19"/>
-          <polyline points="9 6 18 12 9 18"/>
-        </svg>
+      <button class="control-button" type="button" id="prevButton" aria-label="Previous song" title="Previous">
+        &#9664;&#9664;
       </button>
 
-      <button class="control-btn" id="shuffleBtn">
-        <svg viewBox="0 0 24 24">
-          <polyline points="16 3 21 3 21 8"/>
-          <line x1="4" y1="20" x2="21" y2="3"/>
-          <polyline points="21 16 21 21 16 21"/>
-          <line x1="15" y1="15" x2="21" y2="21"/>
-          <line x1="4" y1="4" x2="9" y2="9"/>
-        </svg>
+      <button class="control-button primary" type="button" id="playPauseButton" aria-label="Play" title="Play / Pause">
+        &#9658;
       </button>
 
-      <button id="eqToggle" class="player-btn" aria-label="Equaliser">
-  ⚙️
-</button>
+      <button class="control-button" type="button" id="nextButton" aria-label="Next song" title="Next">
+        &#9654;&#9654;
+      </button>
 
+      <div class="progress-wrap">
+        <input
+          id="progress"
+          type="range"
+          min="0"
+          max="100"
+          value="0"
+          step="0.1"
+          aria-label="Playback progress"
+        />
+        <div class="time">
+          <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+        </div>
+      </div>
 
-      
+      <input
+        class="volume"
+        id="volume"
+        type="range"
+        min="0"
+        max="1"
+        value="1"
+        step="0.01"
+        aria-label="Volume"
+      />
     </div>
 
-    <!-- ✅ Progress Bar Full Width -->
-    <div class="progress-container" id="progressContainer">
-      <div class="progress" id="progress"></div>
+    <div class="eq-panel" id="eqPanel" aria-label="5 band graphic equalizer">
+      <div class="eq-header">
+        <div class="eq-title">5-Band Graphic EQ</div>
+        <button class="eq-reset" type="button" id="eqResetButton">Reset EQ</button>
+      </div>
+
+      <div class="eq-bands">
+        <div class="eq-band">
+          <label for="eq60">60 Hz</label>
+          <input class="eq-slider" id="eq60" type="range" min="-12" max="12" value="0" step="1" data-band="0" aria-label="60 Hz EQ band" />
+          <div class="eq-value" id="eq60Value">0 dB</div>
+        </div>
+
+        <div class="eq-band">
+          <label for="eq250">250 Hz</label>
+          <input class="eq-slider" id="eq250" type="range" min="-12" max="12" value="0" step="1" data-band="1" aria-label="250 Hz EQ band" />
+          <div class="eq-value" id="eq250Value">0 dB</div>
+        </div>
+
+        <div class="eq-band">
+          <label for="eq1000">1 kHz</label>
+          <input class="eq-slider" id="eq1000" type="range" min="-12" max="12" value="0" step="1" data-band="2" aria-label="1 kHz EQ band" />
+          <div class="eq-value" id="eq1000Value">0 dB</div>
+        </div>
+
+        <div class="eq-band">
+          <label for="eq4000">4 kHz</label>
+          <input class="eq-slider" id="eq4000" type="range" min="-12" max="12" value="0" step="1" data-band="3" aria-label="4 kHz EQ band" />
+          <div class="eq-value" id="eq4000Value">0 dB</div>
+        </div>
+
+        <div class="eq-band">
+          <label for="eq12000">12 kHz</label>
+          <input class="eq-slider" id="eq12000" type="range" min="-12" max="12" value="0" step="1" data-band="4" aria-label="12 kHz EQ band" />
+          <div class="eq-value" id="eq12000Value">0 dB</div>
+        </div>
+      </div>
     </div>
-
-  </div>
-</div>
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-
-import { getFirestore, doc, getDoc, setDoc, updateDoc, increment }
-
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-
-apiKey: "AIzaSyDluUOyyk1qdndO2729JiXkY_0w829ttoc",
-
-authDomain: "your-band-player.firebaseapp.com",
-
-projectId: "your-band-player"
-
-};
-
-const app = initializeApp(firebaseConfig);
-
-const db = getFirestore(app);
-
-const audio = new Audio();
-
-let songs = [];
-
-let currentIndex = 0;
-
-let shuffleMode = false;
-
-const eqToggle = document.getElementById("eqToggle");
-const eqPanel = document.getElementById("eqPanel");
-
-eqToggle.addEventListener("click", () => {
-  eqPanel.classList.toggle("active");
-});  
-
-const progress = document.getElementById("progress");
-
-const progressContainer = document.getElementById("progressContainer");
-
-const timeDisplay = document.getElementById("timeDisplay");
-
-const playBtn = document.getElementById("playBtn");
-
-const playIcon = document.getElementById("playIcon");
-
-const audio = document.querySelector("audio");
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-const audioContext = new AudioContext();
-
-const source = audioContext.createMediaElementSource(audio);
-
-// Create EQ bands
-const frequencies = [60, 230, 910, 3600, 14000];
-const filters = frequencies.map(freq => {
-  const filter = audioContext.createBiquadFilter();
-  filter.type = "peaking";
-  filter.frequency.value = freq;
-  filter.Q.value = 1;
-  filter.gain.value = 0;
-  return filter;
-});
-
-// Chain filters
-source.connect(filters[0]);
-for (let i = 0; i < filters.length - 1; i++) {
-  filters[i].connect(filters[i + 1]);
-}
-filters[filters.length - 1].connect(audioContext.destination);
-
-// Resume context on user interaction (iOS requirement)
-document.body.addEventListener("click", () => {
-  if (audioContext.state === "suspended") {
-    audioContext.resume();
-  }
-});
-
-// Hook sliders
-document.querySelectorAll(".eq-band input").forEach(slider => {
-  slider.addEventListener("input", (e) => {
-    const bandIndex = e.target.dataset.band;
-    filters[bandIndex].gain.value = e.target.value;
-  });
-});
-  
-function setPlayIcon(isPlaying) {
-
-playIcon.innerHTML = isPlaying
-
-? `<line x1="6" y1="4" x2="6" y2="20"/>
-
-<line x1="18" y1="4" x2="18" y2="20"/>`
-
-: `<polygon points="6 4 20 12 6 20 6 4"/>`;
-
-}
-
-playBtn.onclick = () => {
-
-// If nothing has been loaded yet, start first track
-
-if (!audio.src && songs.length > 0) {
-
-loadSong(0, true);
-
-return;
-
-}
-
-if (audio.paused) {
-
-audio.play();
-
-} else {
-
-audio.pause();
-
-}
-
-};
-
-audio.addEventListener("play", () => setPlayIcon(true));
-
-audio.addEventListener("pause", () => setPlayIcon(false));
-
-audio.addEventListener("ended", () => {
-
-let nextIndex;
-
-if (shuffleMode) {
-
-if (songs.length <= 1) return;
-
-do {
-
-nextIndex = Math.floor(Math.random() * songs.length);
-
-} while (nextIndex === currentIndex);
-
-} else {
-
-nextIndex = (currentIndex + 1) % songs.length;
-
-}
-
-loadSong(nextIndex, true);
-
-});
-
-function formatTime(seconds) {
-
-const minutes = Math.floor(seconds / 60);
-
-const secs = Math.floor(seconds % 60);
-
-return minutes + ":" + (secs < 10 ? "0" + secs : secs);
-
-}
-
-audio.addEventListener("timeupdate", () => {
-
-if (audio.duration) {
-
-const percent = (audio.currentTime / audio.duration) * 100;
-
-if (!isScrubbing) {
-  progress.style.width = percent + "%";
-}
-
-timeDisplay.textContent =
-
-formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
-
-}
-
-});
-
-  let isScrubbing = false;
-let scrubPercent = 0;
-
-// Helper to get percent based on mouse/touch position
-function getScrubPercent(clientX) {
-  const rect = progressContainer.getBoundingClientRect();
-  const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-  return x / rect.width;
-}
-
-// Mouse Down
-progressContainer.addEventListener("mousedown", (e) => {
-  isScrubbing = true;
-  scrubPercent = getScrubPercent(e.clientX);
-  progress.style.width = (scrubPercent * 100) + "%";
-});
-
-// Mouse Move
-window.addEventListener("mousemove", (e) => {
-  if (!isScrubbing) return;
-  scrubPercent = getScrubPercent(e.clientX);
-  progress.style.width = (scrubPercent * 100) + "%";
-});
-
-// Mouse Up (✅ Apply audio position here)
-window.addEventListener("mouseup", () => {
-  if (!isScrubbing) return;
-  isScrubbing = false;
-  if (audio.duration) {
-    audio.currentTime = scrubPercent * audio.duration;
-  }
-});
-
-// ✅ Touch Support
-
-progressContainer.addEventListener("touchstart", (e) => {
-  isScrubbing = true;
-  scrubPercent = getScrubPercent(e.touches[0].clientX);
-  progress.style.width = (scrubPercent * 100) + "%";
-});
-
-window.addEventListener("touchmove", (e) => {
-  if (!isScrubbing) return;
-  scrubPercent = getScrubPercent(e.touches[0].clientX);
-  progress.style.width = (scrubPercent * 100) + "%";
-});
-
-window.addEventListener("touchend", () => {
-  if (!isScrubbing) return;
-  isScrubbing = false;
-  if (audio.duration) {
-    audio.currentTime = scrubPercent * audio.duration;
-  }
-});
-
-fetch("music/songs.json")
-
-.then(res => res.json())
-
-.then(data => {
-
-songs = data.map(song => ({
-
-file: "music/" + song.file,
-
-title: song.title,
-
-image: song.image,
-
-id: song.file
-
-}));
-
-buildPlaylist();
-
-});
-
-async function buildPlaylist() {
-
-const playlist = document.getElementById("playlist");
-
-playlist.innerHTML = "";
-
-for (let i = 0; i < songs.length; i++) {
-
-const docRef = doc(db, "plays", songs[i].id);
-
-const snap = await getDoc(docRef);
-
-const count = snap.exists() ? snap.data().count : 0;
-
-const div = document.createElement("div");
-
-div.className = "song";
-
-div.innerHTML = `
-
-<img src="${songs[i].image}">
-
-<div class="song-info">
-
-<div>${songs[i].title}</div>
-
-<div class="song-meta" id="plays-${i}">${count} plays</div>
-
-</div>
-
-<button class="download-btn">Download</button>
-
-`;
-
-div.querySelector(".download-btn").onclick = (e) => {
-
-e.stopPropagation();
-
-const link = document.createElement("a");
-
-link.href = songs[i].file;
-
-link.download = songs[i].title;
-
-link.click();
-
-};
-
-div.onclick = () => loadSong(i, true);
-
-playlist.appendChild(div);
-
-}
-
-}
-
-async function incrementPlay(index) {
-
-const docRef = doc(db, "plays", songs[index].id);
-
-const snap = await getDoc(docRef);
-
-if (!snap.exists()) {
-
-await setDoc(docRef, { count: 1 });
-
-} else {
-
-await updateDoc(docRef, { count: increment(1) });
-
-}
-
-const updated = await getDoc(docRef);
-
-document.getElementById(`plays-${index}`).textContent =
-
-updated.data().count + " plays";
-
-}
-
-function loadSong(index, autoPlay=true) {
-
-currentIndex = index;
-
-// Highlight currently playing track
-
-document.querySelectorAll(".song").forEach(el =>
-
-el.classList.remove("playing")
-
-);
-
-const playlistItems = document.querySelectorAll(".song");
-
-if (playlistItems[index]) {
-
-playlistItems[index].classList.add("playing");
-
-}
-
-audio.src = songs[index].file;
-
-document.getElementById("nowPlaying").textContent =
-
-"Now Playing: " + songs[index].title;
-
-// ✅ Media Session API
-
-if ('mediaSession' in navigator) {
-
-navigator.mediaSession.metadata = new MediaMetadata({
-
-title: songs[index].title,
-
-artist: "Shaping Shay",
-
-album: "Shaping Shay",
-
-artwork: [
-
-{
-
-src: songs[index].image,
-
-sizes: "512x512",
-
-type: "image/png"
-
-}
-
-]
-
-});
-
-navigator.mediaSession.setActionHandler('play', () => {
-
-audio.play();
-
-});
-
-navigator.mediaSession.setActionHandler('pause', () => {
-
-audio.pause();
-
-});
-
-navigator.mediaSession.setActionHandler('previoustrack', () => {
-
-document.getElementById("prevBtn").click();
-
-});
-
-navigator.mediaSession.setActionHandler('nexttrack', () => {
-
-document.getElementById("nextBtn").click();
-
-});
-
-}
-
-if (autoPlay) {
-
-incrementPlay(index);
-
-audio.play();
-
-}
-
-}
-
-document.getElementById("nextBtn").onclick = () => {
-
-if (shuffleMode) {
-
-currentIndex = Math.floor(Math.random()*songs.length);
-
-} else {
-
-currentIndex = (currentIndex+1)%songs.length;
-
-}
-
-loadSong(currentIndex,true);
-
-};
-
-document.getElementById("prevBtn").onclick =
-
-() => loadSong((currentIndex-1+songs.length)%songs.length,true);
-
-document.getElementById("shuffleBtn").onclick = () => {
-
-shuffleMode = !shuffleMode;
-
-document.getElementById("shuffleBtn")
-
-.classList.toggle("active", shuffleMode);
-
-};
-
-</script>
-
+  </aside>
+
+  <audio id="audio" preload="metadata"></audio>
+
+  <script>
+    const SONGS_JSON_URL = "music/songs.json";
+    const MUSIC_BASE_PATH = "music/";
+
+    let songs = [];
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const audio = document.getElementById("audio");
+      const nowPlaying = document.getElementById("nowPlaying");
+      const shuffleButton = document.getElementById("shuffleButton");
+      const eqButton = document.getElementById("eqButton");
+      const eqPanel = document.getElementById("eqPanel");
+      const eqResetButton = document.getElementById("eqResetButton");
+      const playPauseButton = document.getElementById("playPauseButton");
+      const prevButton = document.getElementById("prevButton");
+      const nextButton = document.getElementById("nextButton");
+      const progress = document.getElementById("progress");
+      const currentTimeEl = document.getElementById("currentTime");
+      const durationEl = document.getElementById("duration");
+      const volume = document.getElementById("volume");
+      const songList = document.getElementById("songList");
+      const songsCount = document.getElementById("songsCount");
+      const eqSliders = Array.from(document.querySelectorAll(".eq-slider"));
+
+      let currentIndex = 0;
+      let isSeeking = false;
+      let hasLoadedSong = false;
+      let shuffleEnabled = false;
+      let shuffleHistory = [];
+
+      let audioContext = null;
+      let sourceNode = null;
+      let eqFilters = [];
+      let eqInitialized = false;
+
+      const eqSettings = [
+        {
+          frequency: 60,
+          type: "lowshelf",
+          valueEl: document.getElementById("eq60Value")
+        },
+        {
+          frequency: 250,
+          type: "peaking",
+          valueEl: document.getElementById("eq250Value")
+        },
+        {
+          frequency: 1000,
+          type: "peaking",
+          valueEl: document.getElementById("eq1000Value")
+        },
+        {
+          frequency: 4000,
+          type: "peaking",
+          valueEl: document.getElementById("eq4000Value")
+        },
+        {
+          frequency: 12000,
+          type: "highshelf",
+          valueEl: document.getElementById("eq12000Value")
+        }
+      ];
+
+      function formatTime(seconds) {
+        if (!Number.isFinite(seconds) || seconds < 0) {
+          return "0:00";
+        }
+
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return mins + ":" + String(secs).padStart(2, "0");
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function normalizeSong(rawSong) {
+        const file = rawSong.file || rawSong.src || "";
+        const title = rawSong.title || file.replace(/\.[^/.]+$/, "").replaceAll("-", " ");
+        const image = rawSong.image || "";
+
+        return {
+          file: file,
+          title: title,
+          image: image,
+          artist: rawSong.artist || "Shaping Shay",
+          src: file.startsWith("http://") || file.startsWith("https://") || file.startsWith("/")
+            ? file
+            : MUSIC_BASE_PATH + file
+        };
+      }
+
+      async function loadSongsFromJson() {
+        try {
+          const response = await fetch(SONGS_JSON_URL, {
+            cache: "no-store"
+          });
+
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status + " while loading " + SONGS_JSON_URL);
+          }
+
+          const data = await response.json();
+
+          if (!Array.isArray(data)) {
+            throw new Error("Expected " + SONGS_JSON_URL + " to contain a JSON array.");
+          }
+
+          songs = data.map(normalizeSong).filter(function (song) {
+            return song.file && song.title;
+          });
+
+          renderSongList();
+        } catch (error) {
+          console.error(error);
+
+          songs = [];
+
+          songList.innerHTML =
+            '<li class="song-status">' +
+            'Could not load songs from <strong>music/songs.json</strong>. ' +
+            'Please check that the file exists, contains a JSON array, and is being served by a web server.' +
+            '</li>';
+
+          songsCount.textContent = "No songs loaded";
+        }
+      }
+
+      function renderSongList() {
+        if (!songs.length) {
+          songList.innerHTML = '<li class="song-status">No songs found.</li>';
+          songsCount.textContent = "No songs loaded";
+          return;
+        }
+
+        songsCount.textContent =
+          songs.length === 1 ? "1 song" : songs.length + " songs";
+
+        songList.innerHTML = songs.map(function (song, index) {
+          const number = String(index + 1).padStart(2, "0");
+          const imageHtml = song.image
+            ? '<img class="song-cover" src="' + escapeHtml(song.image) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\';" />'
+            : '<div class="song-cover" aria-hidden="true"></div>';
+
+          return (
+            '<li class="song-item" data-index="' + index + '">' +
+              '<span class="song-number">' + number + '</span>' +
+              imageHtml +
+              '<div>' +
+                '<div class="song-title">' + escapeHtml(song.title) + '</div>' +
+                '<div class="song-meta">' + escapeHtml(song.artist) + '</div>' +
+              '</div>' +
+              '<button class="play-song" type="button" data-index="' + index + '">Play</button>' +
+            '</li>'
+          );
+        }).join("");
+
+        bindSongButtons();
+        setActiveSong();
+      }
+
+      function bindSongButtons() {
+        const playSongButtons = Array.from(document.querySelectorAll(".play-song"));
+
+        playSongButtons.forEach(function (button) {
+          button.addEventListener("click", function () {
+            const index = Number(button.dataset.index);
+
+            if (index === currentIndex && hasLoadedSong && !audio.paused) {
+              audio.pause();
+            } else {
+              loadSong(index, true, true);
+            }
+          });
+        });
+      }
+
+      function getSongItems() {
+        return Array.from(document.querySelectorAll(".song-item"));
+      }
+
+      function getPlaySongButtons() {
+        return Array.from(document.querySelectorAll(".play-song"));
+      }
+
+      function setActiveSong() {
+        const songItems = getSongItems();
+        const playSongButtons = getPlaySongButtons();
+
+        songItems.forEach(function (item) {
+          const index = Number(item.dataset.index);
+          item.classList.toggle("active", index === currentIndex);
+        });
+
+        playSongButtons.forEach(function (button) {
+          const index = Number(button.dataset.index);
+          button.textContent = index === currentIndex && !audio.paused ? "Pause" : "Play";
+        });
+      }
+
+      function updateShuffleButton() {
+        shuffleButton.classList.toggle("active", shuffleEnabled);
+        shuffleButton.setAttribute(
+          "aria-label",
+          shuffleEnabled ? "Turn shuffle off" : "Turn shuffle on"
+        );
+        shuffleButton.setAttribute(
+          "aria-pressed",
+          shuffleEnabled ? "true" : "false"
+        );
+        shuffleButton.title = shuffleEnabled ? "Shuffle on" : "Shuffle off";
+      }
+
+      function updateEqButton() {
+        const isOpen = eqPanel.classList.contains("open");
+
+        eqButton.classList.toggle("active", isOpen);
+        eqButton.setAttribute(
+          "aria-label",
+          isOpen ? "Hide equalizer" : "Show equalizer"
+        );
+        eqButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      }
+
+      function closeEqPanel() {
+        if (eqPanel.classList.contains("open")) {
+          eqPanel.classList.remove("open");
+          updateEqButton();
+        }
+      }
+
+      function initializeEqualizer() {
+        if (eqInitialized) {
+          if (audioContext && audioContext.state === "suspended") {
+            audioContext.resume();
+          }
+          return;
+        }
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) {
+          console.warn("Web Audio API is not supported in this browser.");
+          return;
+        }
+
+        audioContext = new AudioContextClass();
+        sourceNode = audioContext.createMediaElementSource(audio);
+
+        eqFilters = eqSettings.map(function (setting) {
+          const filter = audioContext.createBiquadFilter();
+          filter.type = setting.type;
+          filter.frequency.value = setting.frequency;
+          filter.Q.value = 1;
+          filter.gain.value = 0;
+          return filter;
+        });
+
+        sourceNode.connect(eqFilters[0]);
+
+        for (let i = 0; i < eqFilters.length - 1; i++) {
+          eqFilters[i].connect(eqFilters[i + 1]);
+        }
+
+        eqFilters[eqFilters.length - 1].connect(audioContext.destination);
+
+        eqInitialized = true;
+      }
+
+      function setEqBand(index, gain) {
+        const numericGain = Number(gain);
+
+        if (eqSettings[index] && eqSettings[index].valueEl) {
+          eqSettings[index].valueEl.textContent =
+            numericGain > 0 ? "+" + numericGain + " dB" : numericGain + " dB";
+        }
+
+        if (eqFilters[index]) {
+          eqFilters[index].gain.value = numericGain;
+        }
+      }
+
+      function resetEqualizer() {
+        eqSliders.forEach(function (slider) {
+          slider.value = "0";
+          setEqBand(Number(slider.dataset.band), 0);
+        });
+      }
+
+      function getRandomSongIndex() {
+        if (songs.length <= 1) {
+          return currentIndex;
+        }
+
+        let nextIndex = currentIndex;
+
+        while (nextIndex === currentIndex) {
+          nextIndex = Math.floor(Math.random() * songs.length);
+        }
+
+        return nextIndex;
+      }
+
+      function loadSong(index, autoplay, addToHistory) {
+        if (!songs.length) {
+          nowPlaying.innerHTML = "Now Playing: <strong>No songs loaded</strong>";
+          return;
+        }
+
+        if (index < 0) {
+          index = songs.length - 1;
+        }
+
+        if (index >= songs.length) {
+          index = 0;
+        }
+
+        if (addToHistory && hasLoadedSong && index !== currentIndex) {
+          shuffleHistory.push(currentIndex);
+        }
+
+        currentIndex = index;
+        const song = songs[currentIndex];
+
+        audio.src = song.src;
+        audio.load();
+        hasLoadedSong = true;
+
+        nowPlaying.innerHTML =
+          "Now Playing: <strong>" +
+          escapeHtml(song.title) +
+          "</strong> <span>— " +
+          escapeHtml(song.artist) +
+          "</span>";
+
+        progress.value = 0;
+        currentTimeEl.textContent = "0:00";
+        durationEl.textContent = "0:00";
+
+        setActiveSong();
+
+        const activeItem = document.querySelector('.song-item[data-index="' + currentIndex + '"]');
+        if (activeItem) {
+          activeItem.scrollIntoView({
+            block: "nearest",
+            behavior: "smooth"
+          });
+        }
+
+        if (autoplay) {
+          initializeEqualizer();
+
+          audio.play().catch(function (error) {
+            console.warn("Playback could not start:", error);
+          });
+        }
+      }
+
+      function playPause() {
+        initializeEqualizer();
+
+        if (!songs.length) {
+          nowPlaying.innerHTML = "Now Playing: <strong>No songs loaded</strong>";
+          return;
+        }
+
+        if (!hasLoadedSong) {
+          loadSong(currentIndex, true, false);
+          return;
+        }
+
+        if (audio.paused) {
+          audio.play().catch(function (error) {
+            console.warn("Playback could not start:", error);
+          });
+        } else {
+          audio.pause();
+        }
+      }
+
+      function playNext() {
+        if (!songs.length) {
+          return;
+        }
+
+        if (shuffleEnabled) {
+          loadSong(getRandomSongIndex(), true, true);
+        } else {
+          loadSong(currentIndex + 1, true, false);
+        }
+      }
+
+      function playPrevious() {
+        if (!songs.length) {
+          return;
+        }
+
+        if (audio.currentTime > 3) {
+          audio.currentTime = 0;
+          return;
+        }
+
+        if (shuffleEnabled && shuffleHistory.length > 0) {
+          const previousIndex = shuffleHistory.pop();
+          loadSong(previousIndex, true, false);
+        } else {
+          loadSong(currentIndex - 1, true, false);
+        }
+      }
+
+      shuffleButton.addEventListener("click", function () {
+        shuffleEnabled = !shuffleEnabled;
+
+        if (!shuffleEnabled) {
+          shuffleHistory = [];
+        }
+
+        updateShuffleButton();
+      });
+
+      eqButton.addEventListener("click", function (event) {
+        event.stopPropagation();
+        eqPanel.classList.toggle("open");
+        updateEqButton();
+      });
+
+      eqPanel.addEventListener("click", function (event) {
+        event.stopPropagation();
+      });
+
+      document.addEventListener("pointerdown", function (event) {
+        const clickedInsideEqPanel = eqPanel.contains(event.target);
+        const clickedEqButton = eqButton.contains(event.target);
+
+        if (!clickedInsideEqPanel && !clickedEqButton) {
+          closeEqPanel();
+        }
+      });
+
+      eqResetButton.addEventListener("click", function () {
+        initializeEqualizer();
+        resetEqualizer();
+      });
+
+      eqSliders.forEach(function (slider) {
+        slider.addEventListener("input", function () {
+          initializeEqualizer();
+          setEqBand(Number(slider.dataset.band), slider.value);
+        });
+      });
+
+      playPauseButton.addEventListener("click", playPause);
+      nextButton.addEventListener("click", playNext);
+      prevButton.addEventListener("click", playPrevious);
+
+      audio.addEventListener("play", function () {
+        playPauseButton.innerHTML = "&#10074;&#10074;";
+        playPauseButton.setAttribute("aria-label", "Pause");
+        setActiveSong();
+      });
+
+      audio.addEventListener("pause", function () {
+        playPauseButton.innerHTML = "&#9658;";
+        playPauseButton.setAttribute("aria-label", "Play");
+        setActiveSong();
+      });
+
+      audio.addEventListener("loadedmetadata", function () {
+        durationEl.textContent = formatTime(audio.duration);
+      });
+
+      audio.addEventListener("timeupdate", function () {
+        if (!isSeeking && Number.isFinite(audio.duration) && audio.duration > 0) {
+          progress.value = String((audio.currentTime / audio.duration) * 100);
+        }
+
+        currentTimeEl.textContent = formatTime(audio.currentTime);
+      });
+
+      audio.addEventListener("ended", playNext);
+
+      audio.addEventListener("error", function () {
+        const song = songs[currentIndex];
+
+        nowPlaying.innerHTML =
+          "Now Playing: <strong>Could not load audio file</strong>" +
+          "<span> — check path: " +
+          escapeHtml(song ? song.src : "") +
+          "</span>";
+
+        playPauseButton.innerHTML = "&#9658;";
+        setActiveSong();
+      });
+
+      progress.addEventListener("input", function () {
+        isSeeking = true;
+      });
+
+      progress.addEventListener("change", function () {
+        if (Number.isFinite(audio.duration) && audio.duration > 0) {
+          audio.currentTime = (Number(progress.value) / 100) * audio.duration;
+        }
+
+        isSeeking = false;
+      });
+
+      volume.addEventListener("input", function () {
+        audio.volume = Number(volume.value);
+      });
+
+      nowPlaying.innerHTML = "Now Playing: <strong>—</strong>";
+      updateShuffleButton();
+      updateEqButton();
+      resetEqualizer();
+      loadSongsFromJson();
+    });
+  </script>
 </body>
 </html>
