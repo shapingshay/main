@@ -845,6 +845,22 @@ body::after {
       return isAbsolutePath(value) ? value : MUSIC_BASE_PATH + value;
     }
 
+    function withArtworkPath(value) {
+      if (!value) {
+        return "";
+      }
+
+      if (isAbsolutePath(value)) {
+        return value;
+      }
+
+      if (value.startsWith("images/")) {
+        return value;
+      }
+
+      return MUSIC_BASE_PATH + value;
+    }
+
     function normalizeSong(rawSong) {
       const file = rawSong.file || rawSong.src || "";
       const title = rawSong.title || file.replace(/\.[^/.]+$/, "").replaceAll("-", " ");
@@ -857,7 +873,7 @@ body::after {
         artist: rawSong.artist || "Shaping Shay",
         album: rawSong.album || "Shaping Shay",
         src: withMusicBasePath(file),
-        artworkSrc: withMusicBasePath(image)
+        artworkSrc: withArtworkPath(image)
       };
     }
 
