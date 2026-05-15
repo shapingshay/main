@@ -16,7 +16,7 @@
     --accent-2: #ff8ccf;
     --border: rgba(255, 255, 255, 0.16);
     --shadow: rgba(0, 0, 0, 0.35);
-    --song-row-height: 5.4rem;
+    --song-row-height: 4.6rem;
   }
 
   * {
@@ -209,8 +209,8 @@ body::after {
   .song-item {
     min-height: var(--song-row-height);
     display: grid;
-    grid-template-columns: auto auto 1fr auto;
-    gap: 0.85rem;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.9rem;
     align-items: center;
     padding: 0.85rem;
     border-radius: 1rem;
@@ -233,22 +233,10 @@ body::after {
     border-color: rgba(213, 140, 255, 0.8);
   }
 
-  .song-number {
-    width: 2rem;
-    height: 2rem;
-    display: inline-grid;
-    place-items: center;
-    color: var(--muted);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    font-size: 0.9rem;
-    font-variant-numeric: tabular-nums;
-  }
-
   .song-cover {
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 0.8rem;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.55rem;
     object-fit: cover;
     background:
       linear-gradient(135deg, rgba(213, 140, 255, 0.35), rgba(255, 140, 207, 0.16)),
@@ -285,17 +273,20 @@ body::after {
   }
 
   .play-song {
-    min-width: 4.75rem;
-    padding: 0.55rem 0.85rem;
+    width: 2.35rem;
+    height: 2.35rem;
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    color: #120914;
-    font-weight: 800;
-    box-shadow: 0 0.5rem 1.5rem rgba(213, 140, 255, 0.22);
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    display: inline-grid;
+    place-items: center;
   }
 
   .play-song:hover {
-    filter: brightness(1.08);
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(213, 140, 255, 0.55);
   }
 
   .player {
@@ -488,17 +479,6 @@ body::after {
     }
   }
 
-  @media (max-width: 760px) {
-    .song-item {
-      grid-template-columns: auto auto 1fr;
-    }
-
-    .play-song {
-      grid-column: 1 / -1;
-      width: 100%;
-    }
-  }
-
   @media (max-width: 560px) {
     .page {
       padding-bottom: 20rem;
@@ -514,17 +494,9 @@ body::after {
       max-height: calc((var(--song-row-height) * 10) + 12rem);
     }
 
-    .song-item {
-      grid-template-columns: auto 1fr;
-    }
-
-    .song-number {
-      display: none;
-    }
-
     .song-cover {
-      width: 3rem;
-      height: 3rem;
+      width: 2.7rem;
+      height: 2.7rem;
     }
 
     .player {
@@ -936,21 +908,18 @@ body::after {
         songs.length === 1 ? "1 song" : songs.length + " songs";
 
       songList.innerHTML = songs.map(function (song, index) {
-        const number = String(index + 1).padStart(2, "0");
-
         const imageHtml = song.image
           ? '<img class="song-cover" src="' + escapeHtml(song.artworkSrc || song.image) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\';" />'
           : '<div class="song-cover" aria-hidden="true"></div>';
 
         return (
           '<li class="song-item" data-index="' + index + '">' +
-            '<span class="song-number">' + number + '</span>' +
             imageHtml +
             '<div>' +
               '<div class="song-title">' + escapeHtml(song.title) + '</div>' +
               '<div class="song-meta">' + escapeHtml(song.artist) + '</div>' +
             '</div>' +
-            '<button class="play-song" type="button" data-index="' + index + '">Play</button>' +
+            '<button class="play-song" type="button" data-index="' + index + '" aria-label="Play ' + escapeHtml(song.title) + '" title="Play ' + escapeHtml(song.title) + '">&#9658;</button>' +
           '</li>'
         );
       }).join("");
@@ -994,7 +963,10 @@ body::after {
 
       playSongButtons.forEach(function (button) {
         const index = Number(button.dataset.index);
-        button.textContent = index === currentIndex && !audio.paused ? "Pause" : "Play";
+        const isCurrentAndPlaying = index === currentIndex && !audio.paused;
+        button.innerHTML = isCurrentAndPlaying ? "&#10073;&#10073;" : "&#9658;";
+        button.setAttribute("aria-label", (isCurrentAndPlaying ? "Pause " : "Play ") + songs[index].title);
+        button.setAttribute("title", (isCurrentAndPlaying ? "Pause " : "Play ") + songs[index].title);
       });
     }
 
