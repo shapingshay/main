@@ -759,7 +759,7 @@ body::after {
     </div>
   </aside>
 
-  <audio id="audio" preload="metadata" playsinline></audio>
+  <audio id="audio" preload="metadata" playsinline controls style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;"></audio>
 
 <script>
   const SONGS_JSON_URL = "music/songs.json";
@@ -770,10 +770,9 @@ body::after {
   document.addEventListener("DOMContentLoaded", function () {
     /*
       Important:
-      This intentionally uses the same pattern from your older working file:
-      a single persistent JavaScript-created Audio object.
+      Use one persistent DOM <audio> element for best mobile background playback compatibility.
     */
-    const audio = new Audio();
+    const audio = document.getElementById("audio");
 
     const nowPlaying = document.getElementById("nowPlaying");
     const shuffleButton = document.getElementById("shuffleButton");
@@ -791,6 +790,10 @@ body::after {
     const songsCount = document.getElementById("songsCount");
     const eqSliders = Array.from(document.querySelectorAll(".eq-slider"));
 
+    const isLikelyIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const disableWebAudioForBackgroundPlayback = isLikelyIOS;
+
     let currentIndex = 0;
     let isSeeking = false;
     let hasLoadedSong = false;
@@ -801,9 +804,11 @@ body::after {
     let sourceNode = null;
     let eqFilters = [];
     let eqInitialized = false;
+    let lastMediaPositionUpdateMs = 0;
 
     audio.preload = "metadata";
     audio.setAttribute("playsinline", "");
+    audio.setAttribute("webkit-playsinline", "");
 
     const eqSettings = [
       {
@@ -1035,6 +1040,10 @@ body::after {
         return;
       }
 
+      if (disableWebAudioForBackgroundPlayback) {
+        return;
+      }
+
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 
       if (!AudioContextClass) {
@@ -1046,8 +1055,7 @@ body::after {
         audioContext = new AudioContextClass();
 
         /*
-          This is now attached to the JavaScript-created Audio object,
-          matching the working older player architecture.
+          Route the DOM audio element through Web Audio only when EQ is initialized.
         */
         sourceNode = audioContext.createMediaElementSource(audio);
 
@@ -1166,7 +1174,7 @@ body::after {
         navigator.mediaSession.setActionHandler("seekbackward", function (details) {
           const offset = details.seekOffset || 10;
           audio.currentTime = Math.max(audio.currentTime - offset, 0);
-          updateMediaPosition();
+          updateMediaPosition(true);
         });
 
         navigator.mediaSession.setActionHandler("seekforward", function (details) {
@@ -1178,7 +1186,7 @@ body::after {
             audio.currentTime = audio.currentTime + offset;
           }
 
-          updateMediaPosition();
+          updateMediaPosition(true);
         });
 
         navigator.mediaSession.setActionHandler("seekto", function (details) {
@@ -1192,7 +1200,7 @@ body::after {
             audio.currentTime = details.seekTime;
           }
 
-          updateMediaPosition();
+          updateMediaPosition(true);
         });
       } catch (error) {
         console.warn("Could not set Media Session controls:", error);
@@ -1214,7 +1222,7 @@ body::after {
       }
     }
 
-    function updateMediaPosition() {
+    function updateMediaPosition(force) {
       if (!("mediaSession" in navigator)) {
         return;
       }
@@ -1227,12 +1235,18 @@ body::after {
         return;
       }
 
+      const nowMs = Date.now();
+      if (!force && nowMs - lastMediaPositionUpdateMs < 900) {
+        return;
+      }
+
       try {
         navigator.mediaSession.setPositionState({
           duration: audio.duration,
           playbackRate: audio.playbackRate || 1,
           position: Math.min(Math.max(audio.currentTime, 0), audio.duration)
         });
+        lastMediaPositionUpdateMs = nowMs;
       } catch (error) {
         /*
           Some browsers reject position updates before metadata is stable.
@@ -1242,8 +1256,6 @@ body::after {
     }
 
     function safePlay() {
-      initializeEqualizer();
-
       const playPromise = audio.play();
 
       if (playPromise && typeof playPromise.catch === "function") {
@@ -1344,7 +1356,7 @@ body::after {
 
       if (audio.currentTime > 3) {
         audio.currentTime = 0;
-        updateMediaPosition();
+        updateMediaPosition(true);
         return;
       }
 
@@ -1459,7 +1471,7 @@ body::after {
     progress.addEventListener("change", function () {
       if (Number.isFinite(audio.duration) && audio.duration > 0) {
         audio.currentTime = (Number(progress.value) / 100) * audio.duration;
-        updateMediaPosition();
+        updateMediaPosition(true);
       }
 
       isSeeking = false;
@@ -1473,6 +1485,17 @@ body::after {
     updateShuffleButton();
     updateEqButton();
     resetEqualizer();
+
+    if (disableWebAudioForBackgroundPlayback) {
+      eqButton.disabled = true;
+      eqButton.title = "EQ disabled on iOS to preserve lock-screen playback";
+      eqButton.setAttribute("aria-label", "Equalizer unavailable on iOS");
+      eqSliders.forEach(function (slider) {
+        slider.disabled = true;
+      });
+      eqResetButton.disabled = true;
+    }
+
     loadSongsFromJson();
   });
 </script>
